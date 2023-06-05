@@ -1,9 +1,13 @@
 pub mod github;
 pub mod cmd;
 pub mod list;
+pub mod remove;
+pub mod constants;
+pub mod ui;
 
 use cmd::{Actions, ProtonCtl};
 use clap::Parser;
+use ui::term;
 
 #[tokio::main]
 async fn main() {
@@ -27,6 +31,8 @@ async fn main() {
                     println!("No releases found!");
                 }
             }
+        }
+        _ => {
         }
     }
 }

@@ -7,6 +7,7 @@
 pub mod api {
     use serde::{Deserialize};
     use reqwest;
+    use anyhow;
 
     const RELEASE_PATH: &str = "https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases";
     const LATEST_PATH: &str = "https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases/latest";
@@ -107,7 +108,7 @@ pub mod api {
 
     pub type Releases = Vec<Release>;
 
-    pub async fn releases(per_page: Option<u8>, page: Option<usize>) -> Result<Releases, String> {
+    pub async fn releases(per_page: Option<u8>, page: Option<usize>) -> reqwest::Result<Releases> {
         let pp: String = if let Some(number) = per_page {
             number.to_string()
         } else { String::from("10") };
@@ -120,36 +121,17 @@ pub mod api {
             ("page", p.to_string())])
             .header("user-agent", "protonctl-rs")
             .send()
-            .await;
-        let json_res = match response {
-            Ok(e) => e.json::<Releases>().await,
-            Err(err) => {
-                return Err(format!("Failed to open page: {} : {}", p, err));
-            }
-        };
-        match json_res {
-            Ok(e) => Ok(e),
-            Err(err) => Err(format!("Failed to deserialize json: {}", err))
-        }
+            .await?;
+        response.json::<Releases>().await
     }
 
-    pub async fn latest_release() -> Result<Release, String> {
+    pub async fn latest_release() -> reqwest::Result<Release> {
         let response = reqwest::Client::new()
             .get(LATEST_PATH)
             .header("user-agent", "protonctl-rs")
             .send()
-            .await;
-        let json_res = match response {
-            Ok(e) => e.json::<Release>().await,
-            Err(err) => {
-                return Err(format!("Failed to get results from {} : {}", LATEST_PATH, err));
-
-            }
-        };
-        match json_res {
-            Ok(e) => Ok(e),
-            Err(err) => Err(format!("Failed to deserialize json: {}", err))
-        }
+            .await?;
+        response.json::<Release>().await
     }
 }
 
@@ -157,7 +139,7 @@ pub mod api {
 #[cfg(test)]
 mod tests {
     #[tokio::test]
-    async fn can_get_releases() -> Result<(), String> {
+    async fn can_get_releases() -> anyhow::Result<()> {
         use crate::github::api::releases;
         let result = releases(Some(50), Some(1)).await?;
         assert_eq!(result.len(), 50);
@@ -165,7 +147,7 @@ mod tests {
     }
     
     #[tokio::test]
-    async fn can_get_latest_release() -> Result<(), String> {
+    async fn can_get_latest_release() -> anyhow::Result<()> {
         use crate::github::api::latest_release;
         let result = latest_release().await?;
         Ok(())

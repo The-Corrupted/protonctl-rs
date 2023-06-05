@@ -31,3 +31,9 @@ pub struct List {
     #[arg(short = 'b', long = "body", required = false)]
     pub get_body: bool
 }
+
+#[derive(Args, Debug)]
+#[command(author, version, about, long_about = None)]
+pub struct Remove {
+    pub version: String
+}
