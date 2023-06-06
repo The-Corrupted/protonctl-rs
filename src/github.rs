@@ -8,9 +8,8 @@ pub mod api {
     use serde::{Deserialize};
     use reqwest;
     use anyhow;
+    use crate::constants;
 
-    const RELEASE_PATH: &str = "https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases";
-    const LATEST_PATH: &str = "https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases/latest";
     
     #[derive(Debug, Deserialize)]
     pub struct User {
@@ -116,7 +115,7 @@ pub mod api {
             number.to_string()
         } else { String::from("1") };
         let response = reqwest::Client::new()
-            .get(RELEASE_PATH)
+            .get(constants::PROTON_GE_RELEASE_PATH)
             .query(&[("per_page", pp.to_string()),
             ("page", p.to_string())])
             .header("user-agent", "protonctl-rs")
@@ -127,7 +126,7 @@ pub mod api {
 
     pub async fn latest_release() -> reqwest::Result<Release> {
         let response = reqwest::Client::new()
-            .get(LATEST_PATH)
+            .get(constants::PROTON_GE_LATEST_PATH)
             .header("user-agent", "protonctl-rs")
             .send()
             .await?;
@@ -135,7 +134,7 @@ pub mod api {
     }
 
     pub async fn get_release(version: String) -> reqwest::Result<Release> {
-        let mut release_url = RELEASE_PATH.to_string();
+        let mut release_url = constants::PROTON_GE_RELEASE_PATH.to_string();
         release_url.push_str("/tags/");
         release_url.push_str(version.as_str());
         let response = reqwest::Client::new()
