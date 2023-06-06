@@ -1,4 +1,11 @@
 use clap::{Args, Parser, Subcommand};
+use crate::install::Install;
+use crate::remove::Remove;
+use crate::list::List;
+
+pub trait Run {
+    fn run(&self) -> anyhow::Result<()>;
+}
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -12,28 +19,7 @@ pub struct ProtonCtl {
 pub enum Actions {
     Install(Install),
     List(List),
+    Remove(Remove),
 }
 
-#[derive(Args, Debug)]
-#[command(author, version, about, long_about = None)]
-pub struct Install {
-    #[arg(short = 'i', long, conflicts_with = "proton_version")]
-    pub interactive: bool,
-    #[arg(short = 'p', long = "proton-version", conflicts_with = "interactive")]
-    pub proton_version: String,
-}
 
-#[derive(Args, Debug)]
-#[command(author, version, about, long_about = None)]
-pub struct List {
-    #[arg(short = 'n', long, default_value_t = 10, required = false)]
-    pub number: u8,
-    #[arg(short = 'b', long = "body", required = false)]
-    pub get_body: bool
-}
-
-#[derive(Args, Debug)]
-#[command(author, version, about, long_about = None)]
-pub struct Remove {
-    pub version: String
-}

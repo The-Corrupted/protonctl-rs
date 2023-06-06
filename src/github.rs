@@ -133,6 +133,18 @@ pub mod api {
             .await?;
         response.json::<Release>().await
     }
+
+    pub async fn get_release(version: String) -> reqwest::Result<Release> {
+        let mut release_url = RELEASE_PATH.to_string();
+        release_url.push_str("/tags/");
+        release_url.push_str(version.as_str());
+        let response = reqwest::Client::new()
+            .get(release_url)
+            .header("user-agent", "protonctl-rs")
+            .send()
+            .await?;
+        response.json::<Release>().await
+    }
 }
 
     
@@ -150,6 +162,15 @@ mod tests {
     async fn can_get_latest_release() -> anyhow::Result<()> {
         use crate::github::api::latest_release;
         let result = latest_release().await?;
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn get_get_release_by_tag() -> anyhow::Result<()> {
+        use crate::github::api::{Release, get_release};
+        let version: String = String::from("GE-Proton8-4");
+        let release: Release = get_release(String::from("GE-Proton8-4")).await?;
+        assert_eq!(release.get_version(), String::from("GE-Proton8-4"));
         Ok(())
     }
 }

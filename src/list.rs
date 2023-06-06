@@ -1,7 +1,56 @@
 use anyhow;
+use clap::{Args};
 use tokio;
 use crate::github;
 use crate::constants;
+
+#[derive(Args, Debug)]
+#[command(author, version, about, long_about = None)]
+pub struct List {
+    #[arg(short = 'n', long, default_value_t = 10, required = false)]
+    pub number: u8,
+    #[arg(short = 'p', long, default_value_t = 1, required = false)]
+    pub page: usize,
+    #[arg(short = 'e', long, default_value_t = String::from("proton"), required = false)]
+    pub emulator: String,
+    #[arg(short = 'l', long, default_value_t = false, required = false)]
+    pub local: bool
+}
+
+impl List {
+    pub async fn run(&self) -> anyhow::Result<()> {
+        if self.local {
+            let versions = get_installed_versions().await?;
+            for version in versions {
+                let version = version.file_name();
+                match version.to_str() {
+                    Some(name) => {
+                        println!("{}", name);
+                    }
+                    None => {
+                        println!("Something went wrong converting {:?} to a string", version);
+                    }
+                }
+            }
+        } else {
+            if let Some(releases) = get_releases_paged(self.number, self.page).await {
+                for release in releases {
+                    self.print_releases_formatted(release.get_version(), release.get_body(), release.get_download_url());
+                }
+            } else {
+                return Err(anyhow::anyhow!("Failed to get releases"));
+            }
+        }
+        Ok(())
+    }
+
+    fn print_releases_formatted(&self, version: String, body: String, url: String) {
+        println!("Version: {}", version);
+        println!("Download: {}", url);
+        println!("{}", body);
+        println!("--------------------");
+    }
+}
 
 pub async fn get_releases_paged(mut number: u8, page: usize) -> Option<github::api::Releases> {
     if number > constants::MAX_PER_PAGE {
@@ -27,7 +76,7 @@ pub async fn get_installed_versions() -> anyhow::Result<Vec<tokio::fs::DirEntry>
         }
     };
     let mut compat_folder = home.to_owned();
-    compat_folder.push(".steam/root/compatibilitytools.d/");
+    compat_folder.push(constants::STEAM_COMPAT_PATH.to_owned());
     let dir_entries_result = tokio::fs::read_dir(compat_folder).await;
     let mut entries: Vec<tokio::fs::DirEntry> = Vec::new();
     let mut dir_entries = match dir_entries_result {

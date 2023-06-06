@@ -1,38 +1,28 @@
 pub mod github;
 pub mod cmd;
 pub mod list;
+pub mod install;
 pub mod remove;
 pub mod constants;
 pub mod ui;
 
 use cmd::{Actions, ProtonCtl};
 use clap::Parser;
-use ui::term;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     let proton = ProtonCtl::parse();
     match &proton.actions {
         Actions::Install(install) => {
             println!("Install action specified: {:?}", install);
         }
         Actions::List(list) => {
-            let releases = list::get_releases_paged(list.number, 1).await;
-            match releases {
-                Some(rel) => {
-                    for r in rel.iter() {
-                        println!("Release: {}", r.get_version());
-                        println!("Download Url: {}", r.get_download_url());
-                        println!("Body: {}", r.get_body());
-                        println!("-----------------------");
-                    }
-                }
-                None => {
-                    println!("No releases found!");
-                }
-            }
+            list.run().await?;
         }
-        _ => {
+        Actions::Remove(remove) => {
+            remove.run().await?;
         }
+        _ => {}
     }
+    Ok(())
 }
