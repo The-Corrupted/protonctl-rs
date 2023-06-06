@@ -101,7 +101,7 @@ pub mod api {
        }
 
        pub fn get_release_url(self: &Self) -> String {
-           self.url.clone()
+           self.html_url.clone()
        }
             
         pub fn get_body(self: &Self) -> String {

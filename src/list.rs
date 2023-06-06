@@ -35,7 +35,6 @@ impl List {
         } else {
             if let Some(releases) = get_releases_paged(self.number, self.page).await {
                 for release in releases {
-                    println!("{:?}", release);
                     self.print_releases_formatted(release.get_version(), release.get_body(), release.get_release_url());
                 }
             } else {
