@@ -14,7 +14,7 @@ async fn main() -> anyhow::Result<()> {
     let proton = ProtonCtl::parse();
     match &proton.actions {
         Actions::Install(install) => {
-            println!("Install action specified: {:?}", install);
+            install.run().await?;
         }
         Actions::List(list) => {
             list.run().await?;

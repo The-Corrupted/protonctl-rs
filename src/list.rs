@@ -35,7 +35,8 @@ impl List {
         } else {
             if let Some(releases) = get_releases_paged(self.number, self.page).await {
                 for release in releases {
-                    self.print_releases_formatted(release.get_version(), release.get_body(), release.get_download_url());
+                    println!("{:?}", release);
+                    self.print_releases_formatted(release.get_version(), release.get_body(), release.get_release_url());
                 }
             } else {
                 return Err(anyhow::anyhow!("Failed to get releases"));
@@ -48,7 +49,7 @@ impl List {
         println!("Version: {}", version);
         println!("Download: {}", url);
         println!("{}", body);
-        println!("--------------------");
+        println!("--------------------\n");
     }
 }
 

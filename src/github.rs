@@ -11,7 +11,7 @@ pub mod api {
     use crate::constants;
 
     
-    #[derive(Debug, Deserialize)]
+    #[derive(Debug, Deserialize, Clone)]
     pub struct User {
         login: String,
         id: usize,
@@ -34,7 +34,7 @@ pub mod api {
         site_admin: bool,
     }
     
-    #[derive(Debug, Deserialize)]
+    #[derive(Debug, Deserialize, Clone)]
     pub struct Assets {
         url: String,
         id: usize,
@@ -52,7 +52,7 @@ pub mod api {
 
     }
     
-    #[derive(Debug, Deserialize)]
+    #[derive(Debug, Deserialize, Clone)]
     pub struct Reactions {
         url: String,
         total_count: usize,
@@ -68,7 +68,7 @@ pub mod api {
         eyes: usize,
     }
     
-    #[derive(Debug, Deserialize)]
+    #[derive(Debug, Deserialize, Clone)]
     pub struct Release {
         url: String,
         assets_url: String,
@@ -96,10 +96,14 @@ pub mod api {
             self.tag_name.clone()
         }
 
-        pub fn get_download_url(self: &Self) -> String {
-            self.tarball_url.clone()
-        }
+       pub fn get_assets(self: &Self) -> Vec<Assets> {
+           self.assets.clone()
+       }
 
+       pub fn get_release_url(self: &Self) -> String {
+           self.url.clone()
+       }
+            
         pub fn get_body(self: &Self) -> String {
             self.body.clone()
         }
@@ -133,7 +137,7 @@ pub mod api {
         response.json::<Release>().await
     }
 
-    pub async fn get_release(version: String) -> reqwest::Result<Release> {
+    pub async fn release_version(version: String) -> reqwest::Result<Release> {
         let mut release_url = constants::PROTON_GE_RELEASE_PATH.to_string();
         release_url.push_str("/tags/");
         release_url.push_str(version.as_str());
@@ -143,6 +147,32 @@ pub mod api {
             .send()
             .await?;
         response.json::<Release>().await
+    }
+
+    pub async fn get_release_asset_ids(release: Release) -> reqwest::Result<[usize;2]> {
+        // Get the release assets and the release tar file
+        let mut assets_url = constants::PROTON_GE_RELEASE_PATH.to_string();
+        let version: String = release.get_version();
+        let tar_ball: String = format!("{}.tar.gz", version);
+        let sha512sum: String = format!("{}.sha512sum", version);
+        assets_url.push_str("/assets/");
+        let assets = release.get_assets();
+        let mut asset_ids: [usize;2] = [0;2];
+        for asset in assets {
+            if asset.name == tar_ball {
+                asset_ids[0] = asset.id;
+            }
+            if asset.name == sha512sum {
+                asset_ids[1] = asset.id;
+            }
+        }
+        Ok(asset_ids)
+    }
+
+    pub async fn download_release_assets(asset_ids: [usize;2]) -> reqwest::Result<()> {
+
+
+        Ok(())
     }
 }
 
@@ -165,11 +195,21 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn get_get_release_by_tag() -> anyhow::Result<()> {
-        use crate::github::api::{Release, get_release};
+    async fn can_get_release_by_tag() -> anyhow::Result<()> {
+        use crate::github::api::{Release, release_version};
         let version: String = String::from("GE-Proton8-4");
-        let release: Release = get_release(String::from("GE-Proton8-4")).await?;
+        let release: Release = release_version(String::from("GE-Proton8-4")).await?;
         assert_eq!(release.get_version(), String::from("GE-Proton8-4"));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn can_get_asset_ids() -> anyhow::Result<()> {
+        use crate::github::api::{Release, release_version, get_release_asset_ids};
+        let release: Release = release_version(String::from("GE-Proton8-4")).await?;
+        let asset_ids: [usize;2] = get_release_asset_ids(release).await?;
+        assert_eq!(asset_ids[0], 111405985);
+        assert_eq!(asset_ids[1], 111405984);
         Ok(())
     }
 }
