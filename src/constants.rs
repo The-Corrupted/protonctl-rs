@@ -8,4 +8,5 @@ pub const PROTON_GE_LATEST_PATH: &str = "https://api.github.com/repos/GloriousEg
 lazy_static! {
     pub static ref HOME_DIR: Option<std::path::PathBuf> = home_dir();
     pub static ref STEAM_COMPAT_PATH: std::path::PathBuf = std::path::PathBuf::from(".local/share/Steam/compatibilitytools.d");
+    pub static ref INSTALL_PATH: std::path::PathBuf = std::path::PathBuf::from(".local/share/protonctl");
 }

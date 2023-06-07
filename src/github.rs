@@ -5,6 +5,7 @@
 // and we should do it the 'right' way
 
 pub mod api {
+    use std::collections::HashMap;
     use serde::{Deserialize};
     use reqwest;
     use anyhow;
@@ -90,6 +91,12 @@ pub mod api {
         body: String,
         reactions: Reactions
     }
+    
+    #[derive(Debug, Clone, Default)]
+    pub struct AssetId {
+        pub name: String,
+        pub id: usize,
+    }
 
     impl Release {
         pub fn get_version(self: &Self) -> String {
@@ -108,10 +115,11 @@ pub mod api {
             self.body.clone()
         }
     }
+    
 
     pub type Releases = Vec<Release>;
 
-    pub async fn releases(per_page: Option<u8>, page: Option<usize>) -> reqwest::Result<Releases> {
+    pub async fn releases(per_page: Option<u8>, page: Option<usize>) -> anyhow::Result<Releases> {
         let pp: String = if let Some(number) = per_page {
             number.to_string()
         } else { String::from("10") };
@@ -124,20 +132,26 @@ pub mod api {
             ("page", p.to_string())])
             .header("user-agent", "protonctl-rs")
             .send()
-            .await?;
-        response.json::<Releases>().await
+            .await
+            .or_else(|e|
+                convert_reqwest_error("Failed to get releases", e))?;
+        response.json::<Releases>().await.or_else(|e| 
+            convert_reqwest_error("Failed to deserialize response",e))
     }
 
-    pub async fn latest_release() -> reqwest::Result<Release> {
+    pub async fn latest_release() -> anyhow::Result<Release> {
         let response = reqwest::Client::new()
             .get(constants::PROTON_GE_LATEST_PATH)
             .header("user-agent", "protonctl-rs")
             .send()
-            .await?;
-        response.json::<Release>().await
+            .await
+            .or_else(|e|
+                convert_reqwest_error("Failed to get latest release", e))?;
+        response.json::<Release>().await.or_else(|e|
+            convert_reqwest_error("Failed to deserialize response", e))
     }
 
-    pub async fn release_version(version: String) -> reqwest::Result<Release> {
+    pub async fn release_version(version: String) -> anyhow::Result<Release> {
         let mut release_url = constants::PROTON_GE_RELEASE_PATH.to_string();
         release_url.push_str("/tags/");
         release_url.push_str(version.as_str());
@@ -145,34 +159,53 @@ pub mod api {
             .get(release_url)
             .header("user-agent", "protonctl-rs")
             .send()
-            .await?;
-        response.json::<Release>().await
+            .await
+            .or_else(|e| 
+                convert_reqwest_error(format!("Failed to get release {}", version), e))?;
+        response.json::<Release>().await.or_else(|e| 
+            convert_reqwest_error("Failed to get release", e))
     }
 
-    pub async fn get_release_asset_ids(release: Release) -> reqwest::Result<[usize;2]> {
+    pub async fn get_asset_ids(release: Release) -> anyhow::Result<[AssetId;2]> {
         // Get the release assets and the release tar file
-        let mut assets_url = constants::PROTON_GE_RELEASE_PATH.to_string();
         let version: String = release.get_version();
         let tar_ball: String = format!("{}.tar.gz", version);
         let sha512sum: String = format!("{}.sha512sum", version);
-        assets_url.push_str("/assets/");
+        let mut ids: [AssetId;2] = [AssetId::default(), AssetId::default()];
         let assets = release.get_assets();
-        let mut asset_ids: [usize;2] = [0;2];
         for asset in assets {
             if asset.name == tar_ball {
-                asset_ids[0] = asset.id;
+                let id = AssetId {
+                    name: asset.name,
+                    id: asset.id
+                };
+                ids[0] = id;
+                continue;
             }
             if asset.name == sha512sum {
-                asset_ids[1] = asset.id;
+                let id = AssetId {
+                    name: asset.name,
+                    id: asset.id
+                };
+                ids[1] = id;
             }
         }
-        Ok(asset_ids)
+        Ok(ids)
     }
 
-    pub async fn download_release_assets(asset_ids: [usize;2]) -> reqwest::Result<()> {
-
-
+    pub async fn download_assets(asset_ids: [AssetId;2]) -> anyhow::Result<()> {
         Ok(())
+    }
+
+    /* Reqwest has its own error type that seems to be incompatible with anyhow.
+     * For the sake of not returning loads of different error types, just convert
+     * the reqwest error to an anyhow error. I'm probably doing this poorly
+     * and should look into better ways of handling errors
+    */
+    fn convert_reqwest_error<S, T>(message: S, e: reqwest::Error) -> Result<T, anyhow::Error>
+    where S: ToString + std::fmt::Display,
+    {
+        Err(anyhow::anyhow!("{}: {:?}", message, e))
     }
 }
 
@@ -205,11 +238,11 @@ mod tests {
 
     #[tokio::test]
     async fn can_get_asset_ids() -> anyhow::Result<()> {
-        use crate::github::api::{Release, release_version, get_release_asset_ids};
+        use crate::github::api::{Release, AssetId, release_version, get_asset_ids};
         let release: Release = release_version(String::from("GE-Proton8-4")).await?;
-        let asset_ids: [usize;2] = get_release_asset_ids(release).await?;
-        assert_eq!(asset_ids[0], 111405985);
-        assert_eq!(asset_ids[1], 111405984);
+        let ids = get_asset_ids(release).await?;
+        assert_eq!(ids[0].name, String::from("GE-Proton8-4.tar.gz"));
+        assert_eq!(ids[1].name, String::from("GE-Proton8-4.sha512sum"));
         Ok(())
     }
 }
