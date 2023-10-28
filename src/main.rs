@@ -1,12 +1,12 @@
-pub mod github;
 pub mod cmd;
-pub mod list;
-pub mod install;
-pub mod remove;
 pub mod constants;
+pub mod github;
+pub mod install;
+pub mod list;
+pub mod remove;
 
-use cmd::{Actions, ProtonCtl};
 use clap::Parser;
+use cmd::{Actions, ProtonCtl};
 
 fn main() -> anyhow::Result<()> {
     let proton = ProtonCtl::parse();

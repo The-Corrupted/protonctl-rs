@@ -5,13 +5,11 @@
 // and we should do it the 'right' way
 
 pub mod api {
-    use std::collections::HashMap;
-    use serde::Deserialize;
-    use reqwest::blocking;
-    use anyhow;
     use crate::constants;
+    use anyhow;
+    use reqwest::blocking;
+    use serde::Deserialize;
 
-    
     #[derive(Debug, Deserialize, Clone)]
     pub struct User {
         login: String,
@@ -34,7 +32,7 @@ pub mod api {
         user_type: String,
         site_admin: bool,
     }
-    
+
     #[derive(Debug, Deserialize, Clone)]
     pub struct Assets {
         url: String,
@@ -50,9 +48,8 @@ pub mod api {
         created_at: String,
         updated_at: String,
         browser_download_url: String,
-
     }
-    
+
     #[derive(Debug, Deserialize, Clone)]
     pub struct Reactions {
         url: String,
@@ -68,7 +65,7 @@ pub mod api {
         rocket: usize,
         eyes: usize,
     }
-    
+
     #[derive(Debug, Deserialize, Clone)]
     pub struct Release {
         url: String,
@@ -89,9 +86,9 @@ pub mod api {
         tarball_url: String,
         zipball_url: String,
         body: String,
-        reactions: Reactions
+        reactions: Reactions,
     }
-    
+
     #[derive(Debug, Clone, Default)]
     pub struct AssetId {
         pub name: String,
@@ -99,43 +96,45 @@ pub mod api {
     }
 
     impl Release {
-        pub fn get_version(self: &Self) -> String {
+        pub fn get_version(&self) -> String {
             self.tag_name.clone()
         }
 
-       pub fn get_assets(self: &Self) -> Vec<Assets> {
-           self.assets.clone()
-       }
+        pub fn get_assets(&self) -> Vec<Assets> {
+            self.assets.clone()
+        }
 
-       pub fn get_release_url(self: &Self) -> String {
-           self.html_url.clone()
-       }
-            
-        pub fn get_body(self: &Self) -> String {
+        pub fn get_release_url(&self) -> String {
+            self.html_url.clone()
+        }
+
+        pub fn get_body(&self) -> String {
             self.body.clone()
         }
     }
-    
 
     pub type Releases = Vec<Release>;
 
     pub fn releases(per_page: Option<u8>, page: Option<usize>) -> anyhow::Result<Releases> {
         let pp: String = if let Some(number) = per_page {
             number.to_string()
-        } else { String::from("10") };
+        } else {
+            String::from("10")
+        };
         let p: String = if let Some(number) = page {
             number.to_string()
-        } else { String::from("1") };
+        } else {
+            String::from("1")
+        };
         let response = blocking::Client::new()
             .get(constants::PROTON_GE_RELEASE_PATH)
-            .query(&[("per_page", pp.to_string()),
-            ("page", p.to_string())])
+            .query(&[("per_page", pp.to_string()), ("page", p.to_string())])
             .header("user-agent", "protonctl-rs")
             .send()
-            .or_else(|e|
-                convert_reqwest_error("Failed to get releases", e))?;
-        response.json::<Releases>().or_else(|e| 
-            convert_reqwest_error("Failed to deserialize response",e))
+            .or_else(|e| convert_reqwest_error("Failed to get releases", e))?;
+        response
+            .json::<Releases>()
+            .or_else(|e| convert_reqwest_error("Failed to deserialize response", e))
     }
 
     pub fn latest_release() -> anyhow::Result<Release> {
@@ -143,10 +142,10 @@ pub mod api {
             .get(constants::PROTON_GE_LATEST_PATH)
             .header("user-agent", "protonctl-rs")
             .send()
-            .or_else(|e|
-                convert_reqwest_error("Failed to get latest release", e))?;
-        response.json::<Release>().or_else(|e|
-            convert_reqwest_error("Failed to deserialize response", e))
+            .or_else(|e| convert_reqwest_error("Failed to get latest release", e))?;
+        response
+            .json::<Release>()
+            .or_else(|e| convert_reqwest_error("Failed to deserialize response", e))
     }
 
     pub fn release_version(version: String) -> anyhow::Result<Release> {
@@ -157,24 +156,24 @@ pub mod api {
             .get(release_url)
             .header("user-agent", "protonctl-rs")
             .send()
-            .or_else(|e| 
-                convert_reqwest_error(format!("Failed to get release {}", version), e))?;
-        response.json::<Release>().or_else(|e| 
-            convert_reqwest_error("Failed to get release", e))
+            .or_else(|e| convert_reqwest_error(format!("Failed to get release {}", version), e))?;
+        response
+            .json::<Release>()
+            .or_else(|e| convert_reqwest_error("Failed to get release", e))
     }
 
-    pub fn get_asset_ids(release: Release) -> anyhow::Result<[AssetId;2]> {
+    pub fn get_asset_ids(release: Release) -> anyhow::Result<[AssetId; 2]> {
         // Get the release assets and the release tar file
         let version: String = release.get_version();
         let tar_ball: String = format!("{}.tar.gz", version);
         let sha512sum: String = format!("{}.sha512sum", version);
-        let mut ids: [AssetId;2] = [AssetId::default(), AssetId::default()];
+        let mut ids: [AssetId; 2] = [AssetId::default(), AssetId::default()];
         let assets = release.get_assets();
         for asset in assets {
             if asset.name == tar_ball {
                 let id = AssetId {
                     name: asset.name,
-                    id: asset.id
+                    id: asset.id,
                 };
                 ids[0] = id;
                 continue;
@@ -182,7 +181,7 @@ pub mod api {
             if asset.name == sha512sum {
                 let id = AssetId {
                     name: asset.name,
-                    id: asset.id
+                    id: asset.id,
                 };
                 ids[1] = id;
             }
@@ -190,7 +189,7 @@ pub mod api {
         Ok(ids)
     }
 
-    pub fn download_assets(asset_ids: [AssetId;2]) -> anyhow::Result<()> {
+    pub fn download_assets(_asset_ids: [AssetId; 2]) -> anyhow::Result<()> {
         Ok(())
     }
 
@@ -198,15 +197,15 @@ pub mod api {
      * For the sake of not returning loads of different error types, just convert
      * the reqwest error to an anyhow error. I'm probably doing this poorly
      * and should look into better ways of handling errors
-    */
+     */
     fn convert_reqwest_error<S, T>(message: S, e: reqwest::Error) -> Result<T, anyhow::Error>
-    where S: ToString + std::fmt::Display,
+    where
+        S: ToString + std::fmt::Display,
     {
         Err(anyhow::anyhow!("{}: {:?}", message, e))
     }
 }
 
-    
 #[cfg(test)]
 mod tests {
     #[test]
@@ -216,26 +215,26 @@ mod tests {
         assert_eq!(result.len(), 50);
         Ok(())
     }
-    
+
     #[test]
     fn can_get_latest_release() -> anyhow::Result<()> {
         use crate::github::api::latest_release;
-        let result = latest_release()?;
+        let _result = latest_release()?;
         Ok(())
     }
 
     #[test]
     fn can_get_release_by_tag() -> anyhow::Result<()> {
-        use crate::github::api::{Release, release_version};
+        use crate::github::api::{release_version, Release};
         let version: String = String::from("GE-Proton8-4");
         let release: Release = release_version(String::from("GE-Proton8-4"))?;
-        assert_eq!(release.get_version(), String::from("GE-Proton8-4"));
+        assert_eq!(release.get_version(), version);
         Ok(())
     }
 
     #[test]
     fn can_get_asset_ids() -> anyhow::Result<()> {
-        use crate::github::api::{Release, AssetId, release_version, get_asset_ids};
+        use crate::github::api::{get_asset_ids, release_version, Release};
         let release: Release = release_version(String::from("GE-Proton8-4"))?;
         let ids = get_asset_ids(release)?;
         assert_eq!(ids[0].name, String::from("GE-Proton8-4.tar.gz"));

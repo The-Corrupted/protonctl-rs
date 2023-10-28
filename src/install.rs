@@ -1,8 +1,6 @@
-use clap::Args;
-use reqwest;
 use crate::constants;
-use crate::github::api::{Release, get_asset_ids, 
-    download_assets, release_version};
+use crate::github::api::{get_asset_ids, release_version, Release};
+use clap::Args;
 
 #[derive(Args, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -13,10 +11,10 @@ pub struct Install {
 
 impl Install {
     pub fn run(&self) -> anyhow::Result<()> {
-        let compat_directory: std::path::PathBuf = get_compat_directory_safe()?;
-        let install_directory: std::path::PathBuf = get_install_directory_safe()?;
+        let _compat_directory: std::path::PathBuf = get_compat_directory_safe()?;
+        let _install_directory: std::path::PathBuf = get_install_directory_safe()?;
         let release: Release = release_version(self.proton_version.clone())?;
-        let assets = get_asset_ids(release)?;
+        let _assets = get_asset_ids(release)?;
         Ok(())
     }
 }

@@ -1,7 +1,7 @@
-use anyhow;
-use clap::{Args};
-use crate::github;
 use crate::constants;
+use crate::github;
+use anyhow;
+use clap::Args;
 
 #[derive(Args, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -13,7 +13,7 @@ pub struct List {
     #[arg(short = 'e', long, default_value_t = String::from("proton"), required = false)]
     pub emulator: String,
     #[arg(short = 'l', long, default_value_t = false, required = false)]
-    pub local: bool
+    pub local: bool,
 }
 
 impl List {
@@ -31,14 +31,16 @@ impl List {
                     }
                 }
             }
-        } else {
-            if let Some(releases) = get_releases_paged(self.number, self.page) {
-                for release in releases {
-                    self.print_releases_formatted(release.get_version(), release.get_body(), release.get_release_url());
-                }
-            } else {
-                return Err(anyhow::anyhow!("Failed to get releases"));
+        } else if let Some(releases) = get_releases_paged(self.number, self.page) {
+            for release in releases {
+                self.print_releases_formatted(
+                    release.get_version(),
+                    release.get_body(),
+                    release.get_release_url(),
+                );
             }
+        } else {
+            return Err(anyhow::anyhow!("Failed to get releases"));
         }
         Ok(())
     }
@@ -55,7 +57,7 @@ pub fn get_releases_paged(mut number: u8, page: usize) -> Option<github::api::Re
     if number > constants::MAX_PER_PAGE {
         number = constants::MAX_PER_PAGE
     }
-    
+
     let releases_wrapped = github::api::releases(Some(number), Some(page));
     let releases = match releases_wrapped {
         Ok(e) => e,
@@ -78,10 +80,12 @@ pub fn get_installed_versions() -> anyhow::Result<Vec<std::fs::DirEntry>> {
     compat_folder.push(constants::STEAM_COMPAT_PATH.to_owned());
     let dir_entries_result = std::fs::read_dir(compat_folder);
     let mut entries: Vec<std::fs::DirEntry> = Vec::new();
-    let mut dir_entries = match dir_entries_result {
+    let dir_entries = match dir_entries_result {
         Ok(d) => d,
         Err(_e) => {
-            return Err(anyhow::anyhow!("Failed to read compatibility directory. Does it exist?"));
+            return Err(anyhow::anyhow!(
+                "Failed to read compatibility directory. Does it exist?"
+            ));
         }
     };
     for dir in dir_entries {
@@ -93,7 +97,7 @@ pub fn get_installed_versions() -> anyhow::Result<Vec<std::fs::DirEntry>> {
                 break;
             }
         }
-    };
+    }
     Ok(entries)
 }
 

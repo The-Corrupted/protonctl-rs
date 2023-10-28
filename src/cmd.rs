@@ -1,7 +1,7 @@
-use clap::{Args, Parser, Subcommand};
 use crate::install::Install;
-use crate::remove::Remove;
 use crate::list::List;
+use crate::remove::Remove;
+use clap::{Parser, Subcommand};
 
 pub trait Run {
     fn run(&self) -> anyhow::Result<()>;
@@ -21,5 +21,3 @@ pub enum Actions {
     List(List),
     Remove(Remove),
 }
-
-

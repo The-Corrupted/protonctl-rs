@@ -1,12 +1,16 @@
-use lazy_static::lazy_static;
 use dirs::home_dir;
+use lazy_static::lazy_static;
 
 pub const MAX_PER_PAGE: u8 = 50;
-pub const PROTON_GE_RELEASE_PATH: &str = "https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases";
-pub const PROTON_GE_LATEST_PATH: &str = "https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases/latest";
+pub const PROTON_GE_RELEASE_PATH: &str =
+    "https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases";
+pub const PROTON_GE_LATEST_PATH: &str =
+    "https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases/latest";
 
 lazy_static! {
     pub static ref HOME_DIR: Option<std::path::PathBuf> = home_dir();
-    pub static ref STEAM_COMPAT_PATH: std::path::PathBuf = std::path::PathBuf::from(".local/share/Steam/compatibilitytools.d");
-    pub static ref INSTALL_PATH: std::path::PathBuf = std::path::PathBuf::from(".local/share/protonctl");
+    pub static ref STEAM_COMPAT_PATH: std::path::PathBuf =
+        std::path::PathBuf::from(".local/share/Steam/compatibilitytools.d");
+    pub static ref INSTALL_PATH: std::path::PathBuf =
+        std::path::PathBuf::from(".local/share/protonctl");
 }

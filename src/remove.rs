@@ -1,11 +1,11 @@
-use clap::{Args};
 use crate::constants;
+use clap::Args;
 
 #[derive(Args, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Remove {
     #[arg(short = 'v', long, required = true)]
-    pub version: String
+    pub version: String,
 }
 
 impl Remove {
@@ -16,7 +16,7 @@ impl Remove {
 }
 
 pub fn remove(version: String) -> anyhow::Result<()> {
-    let mut compat_path: std::path::PathBuf  = match constants::HOME_DIR.to_owned() {
+    let mut compat_path: std::path::PathBuf = match constants::HOME_DIR.to_owned() {
         Some(path) => path,
         None => {
             return Err(anyhow::anyhow!("Home directory not found"));
