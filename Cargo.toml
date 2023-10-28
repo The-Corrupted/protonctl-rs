@@ -6,15 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = { version = "1.0.71" }
+anyhow = { version = "1.0.75" }
 dirs = { version = "5.0.1" } 
 lazy_static = { version = "1.4.0" }
-tokio = { version = "1.27.0", features = ["fs", "rt", "rt-multi-thread", "macros"]}
-ratatui = { version = "0.20.1" }
-crossterm = { version = "0.26.1" }
-reqwest = { version = "0.11.16", features = ["json", "stream"] }
-clap = { version = "4.2.1", features = ["derive"] }
-serde = { version = "1.0.163", features = ["derive"] }
-serde_json = { version = "1.0.96" }
-async-compression = { version = "0.4.0", features = ["tokio", "gzip"] }
+reqwest = { version = "0.11.22", features = ["json", "stream", "blocking"] }
+clap = { version = "4.4.7", features = ["derive"] }
+serde = { version = "1.0.190", features = ["derive"] }
+serde_json = { version = "1.0.107" }
 tar =  { version = "0.4.38" }

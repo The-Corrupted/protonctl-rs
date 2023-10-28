@@ -6,8 +6,8 @@
 
 pub mod api {
     use std::collections::HashMap;
-    use serde::{Deserialize};
-    use reqwest;
+    use serde::Deserialize;
+    use reqwest::blocking;
     use anyhow;
     use crate::constants;
 
@@ -119,54 +119,51 @@ pub mod api {
 
     pub type Releases = Vec<Release>;
 
-    pub async fn releases(per_page: Option<u8>, page: Option<usize>) -> anyhow::Result<Releases> {
+    pub fn releases(per_page: Option<u8>, page: Option<usize>) -> anyhow::Result<Releases> {
         let pp: String = if let Some(number) = per_page {
             number.to_string()
         } else { String::from("10") };
         let p: String = if let Some(number) = page {
             number.to_string()
         } else { String::from("1") };
-        let response = reqwest::Client::new()
+        let response = blocking::Client::new()
             .get(constants::PROTON_GE_RELEASE_PATH)
             .query(&[("per_page", pp.to_string()),
             ("page", p.to_string())])
             .header("user-agent", "protonctl-rs")
             .send()
-            .await
             .or_else(|e|
                 convert_reqwest_error("Failed to get releases", e))?;
-        response.json::<Releases>().await.or_else(|e| 
+        response.json::<Releases>().or_else(|e| 
             convert_reqwest_error("Failed to deserialize response",e))
     }
 
-    pub async fn latest_release() -> anyhow::Result<Release> {
-        let response = reqwest::Client::new()
+    pub fn latest_release() -> anyhow::Result<Release> {
+        let response = blocking::Client::new()
             .get(constants::PROTON_GE_LATEST_PATH)
             .header("user-agent", "protonctl-rs")
             .send()
-            .await
             .or_else(|e|
                 convert_reqwest_error("Failed to get latest release", e))?;
-        response.json::<Release>().await.or_else(|e|
+        response.json::<Release>().or_else(|e|
             convert_reqwest_error("Failed to deserialize response", e))
     }
 
-    pub async fn release_version(version: String) -> anyhow::Result<Release> {
+    pub fn release_version(version: String) -> anyhow::Result<Release> {
         let mut release_url = constants::PROTON_GE_RELEASE_PATH.to_string();
         release_url.push_str("/tags/");
         release_url.push_str(version.as_str());
-        let response = reqwest::Client::new()
+        let response = blocking::Client::new()
             .get(release_url)
             .header("user-agent", "protonctl-rs")
             .send()
-            .await
             .or_else(|e| 
                 convert_reqwest_error(format!("Failed to get release {}", version), e))?;
-        response.json::<Release>().await.or_else(|e| 
+        response.json::<Release>().or_else(|e| 
             convert_reqwest_error("Failed to get release", e))
     }
 
-    pub async fn get_asset_ids(release: Release) -> anyhow::Result<[AssetId;2]> {
+    pub fn get_asset_ids(release: Release) -> anyhow::Result<[AssetId;2]> {
         // Get the release assets and the release tar file
         let version: String = release.get_version();
         let tar_ball: String = format!("{}.tar.gz", version);
@@ -193,7 +190,7 @@ pub mod api {
         Ok(ids)
     }
 
-    pub async fn download_assets(asset_ids: [AssetId;2]) -> anyhow::Result<()> {
+    pub fn download_assets(asset_ids: [AssetId;2]) -> anyhow::Result<()> {
         Ok(())
     }
 
@@ -212,35 +209,35 @@ pub mod api {
     
 #[cfg(test)]
 mod tests {
-    #[tokio::test]
-    async fn can_get_releases() -> anyhow::Result<()> {
+    #[test]
+    fn can_get_releases() -> anyhow::Result<()> {
         use crate::github::api::releases;
-        let result = releases(Some(50), Some(1)).await?;
+        let result = releases(Some(50), Some(1))?;
         assert_eq!(result.len(), 50);
         Ok(())
     }
     
-    #[tokio::test]
-    async fn can_get_latest_release() -> anyhow::Result<()> {
+    #[test]
+    fn can_get_latest_release() -> anyhow::Result<()> {
         use crate::github::api::latest_release;
-        let result = latest_release().await?;
+        let result = latest_release()?;
         Ok(())
     }
 
-    #[tokio::test]
-    async fn can_get_release_by_tag() -> anyhow::Result<()> {
+    #[test]
+    fn can_get_release_by_tag() -> anyhow::Result<()> {
         use crate::github::api::{Release, release_version};
         let version: String = String::from("GE-Proton8-4");
-        let release: Release = release_version(String::from("GE-Proton8-4")).await?;
+        let release: Release = release_version(String::from("GE-Proton8-4"))?;
         assert_eq!(release.get_version(), String::from("GE-Proton8-4"));
         Ok(())
     }
 
-    #[tokio::test]
-    async fn can_get_asset_ids() -> anyhow::Result<()> {
+    #[test]
+    fn can_get_asset_ids() -> anyhow::Result<()> {
         use crate::github::api::{Release, AssetId, release_version, get_asset_ids};
-        let release: Release = release_version(String::from("GE-Proton8-4")).await?;
-        let ids = get_asset_ids(release).await?;
+        let release: Release = release_version(String::from("GE-Proton8-4"))?;
+        let ids = get_asset_ids(release)?;
         assert_eq!(ids[0].name, String::from("GE-Proton8-4.tar.gz"));
         assert_eq!(ids[1].name, String::from("GE-Proton8-4.sha512sum"));
         Ok(())

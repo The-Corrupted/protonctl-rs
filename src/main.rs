@@ -4,25 +4,24 @@ pub mod list;
 pub mod install;
 pub mod remove;
 pub mod constants;
-pub mod ui;
 
 use cmd::{Actions, ProtonCtl};
 use clap::Parser;
 
-#[tokio::main]
-async fn main() -> anyhow::Result<()> {
+fn main() -> anyhow::Result<()> {
     let proton = ProtonCtl::parse();
-    match &proton.actions {
-        Actions::Install(install) => {
-            install.run().await?;
+    if let Some(subcommand) = proton.actions {
+        match subcommand {
+            Actions::Install(install) => {
+                install.run()?;
+            }
+            Actions::List(list) => {
+                list.run()?;
+            }
+            Actions::Remove(remove) => {
+                remove.run()?;
+            }
         }
-        Actions::List(list) => {
-            list.run().await?;
-        }
-        Actions::Remove(remove) => {
-            remove.run().await?;
-        }
-        _ => {}
     }
     Ok(())
 }

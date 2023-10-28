@@ -1,6 +1,5 @@
 use anyhow;
 use clap::{Args};
-use tokio;
 use crate::github;
 use crate::constants;
 
@@ -18,9 +17,9 @@ pub struct List {
 }
 
 impl List {
-    pub async fn run(&self) -> anyhow::Result<()> {
+    pub fn run(&self) -> anyhow::Result<()> {
         if self.local {
-            let versions = get_installed_versions().await?;
+            let versions = get_installed_versions()?;
             for version in versions {
                 let version = version.file_name();
                 match version.to_str() {
@@ -33,7 +32,7 @@ impl List {
                 }
             }
         } else {
-            if let Some(releases) = get_releases_paged(self.number, self.page).await {
+            if let Some(releases) = get_releases_paged(self.number, self.page) {
                 for release in releases {
                     self.print_releases_formatted(release.get_version(), release.get_body(), release.get_release_url());
                 }
@@ -52,12 +51,12 @@ impl List {
     }
 }
 
-pub async fn get_releases_paged(mut number: u8, page: usize) -> Option<github::api::Releases> {
+pub fn get_releases_paged(mut number: u8, page: usize) -> Option<github::api::Releases> {
     if number > constants::MAX_PER_PAGE {
         number = constants::MAX_PER_PAGE
     }
     
-    let releases_wrapped = github::api::releases(Some(number), Some(page)).await;
+    let releases_wrapped = github::api::releases(Some(number), Some(page));
     let releases = match releases_wrapped {
         Ok(e) => e,
         Err(e) => {
@@ -68,7 +67,7 @@ pub async fn get_releases_paged(mut number: u8, page: usize) -> Option<github::a
     Some(releases)
 }
 
-pub async fn get_installed_versions() -> anyhow::Result<Vec<tokio::fs::DirEntry>> {
+pub fn get_installed_versions() -> anyhow::Result<Vec<std::fs::DirEntry>> {
     let home: std::path::PathBuf = match constants::HOME_DIR.clone() {
         Some(h) => h,
         None => {
@@ -77,20 +76,20 @@ pub async fn get_installed_versions() -> anyhow::Result<Vec<tokio::fs::DirEntry>
     };
     let mut compat_folder = home.to_owned();
     compat_folder.push(constants::STEAM_COMPAT_PATH.to_owned());
-    let dir_entries_result = tokio::fs::read_dir(compat_folder).await;
-    let mut entries: Vec<tokio::fs::DirEntry> = Vec::new();
+    let dir_entries_result = std::fs::read_dir(compat_folder);
+    let mut entries: Vec<std::fs::DirEntry> = Vec::new();
     let mut dir_entries = match dir_entries_result {
         Ok(d) => d,
         Err(_e) => {
             return Err(anyhow::anyhow!("Failed to read compatibility directory. Does it exist?"));
         }
     };
-    while let Ok(dir) = dir_entries.next_entry().await {
+    for dir in dir_entries {
         match dir {
-            Some(d) => {
+            Ok(d) => {
                 entries.push(d);
             }
-            None => {
+            Err(_) => {
                 break;
             }
         }
@@ -100,10 +99,10 @@ pub async fn get_installed_versions() -> anyhow::Result<Vec<tokio::fs::DirEntry>
 
 #[cfg(test)]
 mod tests {
-    #[tokio::test]
-    async fn can_get_local_dir() -> anyhow::Result<()> {
+    #[test]
+    fn can_get_local_dir() -> anyhow::Result<()> {
         use crate::list::get_installed_versions;
-        let results = get_installed_versions().await?;
+        let results = get_installed_versions()?;
         if !results.is_empty() {
             Ok(())
         } else {

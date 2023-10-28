@@ -1,4 +1,3 @@
-use tokio;
 use clap::{Args};
 use crate::constants;
 
@@ -10,13 +9,13 @@ pub struct Remove {
 }
 
 impl Remove {
-    pub async fn run(&self) -> anyhow::Result<()> {
-        remove(self.version.clone()).await?;
+    pub fn run(&self) -> anyhow::Result<()> {
+        remove(self.version.clone())?;
         Ok(())
     }
 }
 
-pub async fn remove(version: String) -> anyhow::Result<()> {
+pub fn remove(version: String) -> anyhow::Result<()> {
     let mut compat_path: std::path::PathBuf  = match constants::HOME_DIR.to_owned() {
         Some(path) => path,
         None => {
@@ -28,6 +27,6 @@ pub async fn remove(version: String) -> anyhow::Result<()> {
     if !compat_path.exists() {
         return Err(anyhow::anyhow!("{} does not exist", &version));
     }
-    tokio::fs::remove_dir_all(compat_path).await?;
+    std::fs::remove_dir_all(compat_path)?;
     Ok(())
 }

@@ -12,7 +12,7 @@ pub trait Run {
 #[command(propagate_version = true)]
 pub struct ProtonCtl {
     #[command(subcommand)]
-    pub actions: Actions,
+    pub actions: Option<Actions>,
 }
 
 #[derive(Subcommand, Debug)]
