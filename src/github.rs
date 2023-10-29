@@ -10,6 +10,9 @@ pub mod api {
     use reqwest::blocking;
     use serde::Deserialize;
 
+    const GB: u64 = 1_073_741_824;
+    const MB: u64 = 1_048_576;
+
     #[derive(Debug, Deserialize, Clone)]
     pub struct User {
         login: String,
@@ -221,7 +224,8 @@ pub mod api {
                         // We successfully got the file. Print success status and add it to the
                         // installed files array. We will need this for decompression and sha512sum 
                         // checks
-                        println!("File {} written. Wrote {} bytes", asset.name, e);
+                        let (units, prefix) = bytes_conversion(e);
+                        println!("File {} written. Wrote {} {}", asset.name, units, prefix);
                         downloaded_files[x] = path;
                     }
                     Err(e) => return convert_reqwest_error("Failed to write to file", e),
@@ -241,6 +245,16 @@ pub mod api {
         S: ToString + std::fmt::Display,
     {
         Err(anyhow::anyhow!("{}: {:?}", message, e))
+    }
+
+    fn bytes_conversion<'a>(e: u64) -> (u64, &'a str) {
+        if e >= GB {
+            return (e/GB, "gigabytes");
+        } else if e >= MB {
+            return (e/MB, "megabytes");
+        } else {
+            return (e, "bytes");
+        }
     }
 }
 
