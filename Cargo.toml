@@ -4,15 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[workspace]
+members = ["protonctllib"]
+
+[workspace.dependencies]
+anyhow = { version = "1.0.75" }
+clap = { version = "4.4.7", features = ["derive"] }
+
 
 [dependencies]
-anyhow = { version = "1.0.75" }
-dirs = { version = "5.0.1" } 
-lazy_static = { version = "1.4.0" }
-reqwest = { version = "0.11.22", features = ["json", "stream", "blocking"] }
-clap = { version = "4.4.7", features = ["derive"] }
-serde = { version = "1.0.190", features = ["derive"] }
-serde_json = { version = "1.0.107" }
-tar =  { version = "0.4.38" }
-flate2 = { version = "1.0.28" }
-sha2 = { version = "0.10.8" }
+anyhow.workspace = true
+clap.workspace = true
+protonctllib = { path = "./protonctllib" }
