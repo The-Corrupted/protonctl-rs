@@ -3,6 +3,7 @@ pub mod constants;
 pub mod github;
 pub mod install;
 pub mod list;
+pub mod os_helper;
 pub mod remove;
 
 use clap::Parser;

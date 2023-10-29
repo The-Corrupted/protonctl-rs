@@ -5,7 +5,9 @@
 // and we should do it the 'right' way
 
 pub mod api {
-    use crate::constants;
+    use std::io::Write;
+
+    use crate::{constants, os_helper};
     use anyhow;
     use reqwest::blocking;
     use serde::Deserialize;
@@ -189,7 +191,38 @@ pub mod api {
         Ok(ids)
     }
 
-    pub fn download_assets(_asset_ids: [AssetId; 2]) -> anyhow::Result<()> {
+    pub fn download_assets(asset_ids: [AssetId; 2]) -> anyhow::Result<()> {
+        for asset in asset_ids {
+            let mut asset_path = constants::PROTON_GE_RELEASE_PATH.to_owned();
+            asset_path.push_str(format!("/assets/{}", asset.id).as_str());
+            let mut response = blocking::Client::new()
+                .get(asset_path)
+                .header("user-agent", "protonctl-rs")
+                .header("Accept", "application/octet-stream")
+                .send()
+                .or_else(|e| convert_reqwest_error("Failed to get asset", e))?;
+            if response.status().is_success() {
+                // We got what we wanted. Stream the body to file
+                let mut path = os_helper::get_install_directory_safe()?;
+                path.push(&asset.name);
+                let mut file_handle = match std::fs::OpenOptions::new()
+                    .write(true)
+                    .create(true)
+                    .open(&path)
+                {
+                    Ok(f) => f,
+                    Err(_e) => {
+                        return Err(anyhow::anyhow!("Failed to open file: {:?}", path));
+                    }
+                };
+                match response.copy_to(&mut file_handle) {
+                    Ok(e) => {
+                        println!("File {} written. Wrote {} bytes", asset.name, e);
+                    }
+                    Err(e) => return convert_reqwest_error("Failed to write to file", e),
+                }
+            }
+        }
         Ok(())
     }
 

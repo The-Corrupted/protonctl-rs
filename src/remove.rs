@@ -5,12 +5,12 @@ use clap::Args;
 #[command(author, version, about, long_about = None)]
 pub struct Remove {
     #[arg(short = 'v', long, required = true)]
-    pub version: String,
+    pub pw_version: String,
 }
 
 impl Remove {
     pub fn run(&self) -> anyhow::Result<()> {
-        remove(self.version.clone())?;
+        remove(self.pw_version.clone())?;
         Ok(())
     }
 }

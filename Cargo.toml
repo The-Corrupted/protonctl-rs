@@ -14,3 +14,4 @@ clap = { version = "4.4.7", features = ["derive"] }
 serde = { version = "1.0.190", features = ["derive"] }
 serde_json = { version = "1.0.107" }
 tar =  { version = "0.4.38" }
+flate2 = { version = "1.0.28" }
