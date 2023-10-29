@@ -1,7 +1,7 @@
 # protonctl-rs
 Proton-GE manager written in Rust
 
-#TODO:
+# TODO
 * The code needs to be cleaned up. The goal was to get something working. Now that it's working, things need to be better organized and the structs used/means of passing data around needs to be looked at again.
 * Better error handling. I'm converting reqwest errors to anyhow errors and I've not been using anyhows Context. This means the returning of errors is verbose and likely incorrect/inefficient. This needs a second look.
 * Take a look at async. It's been stripped out because it wasn't needed at the time and I've since moved to reqwests blocking api to avoid needing to pull in tokio. Determine if we want to use async or if the blocking api is sufficient.
