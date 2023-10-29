@@ -5,8 +5,6 @@
 // and we should do it the 'right' way
 
 pub mod api {
-    use std::io::Write;
-
     use crate::{constants, os_helper};
     use anyhow;
     use reqwest::blocking;
@@ -191,8 +189,11 @@ pub mod api {
         Ok(ids)
     }
 
-    pub fn download_assets(asset_ids: [AssetId; 2]) -> anyhow::Result<()> {
-        for asset in asset_ids {
+    pub fn download_assets(asset_ids: [AssetId; 2]) -> anyhow::Result<[std::path::PathBuf; 2]> {
+        println!("Downloading tar and sha files");
+        let mut downloaded_files: [std::path::PathBuf; 2] = [std::path::PathBuf::new(), std::path::PathBuf::new()];
+        for x in 0..asset_ids.len() {
+            let asset = asset_ids[x].clone();
             let mut asset_path = constants::PROTON_GE_RELEASE_PATH.to_owned();
             asset_path.push_str(format!("/assets/{}", asset.id).as_str());
             let mut response = blocking::Client::new()
@@ -217,13 +218,17 @@ pub mod api {
                 };
                 match response.copy_to(&mut file_handle) {
                     Ok(e) => {
+                        // We successfully got the file. Print success status and add it to the
+                        // installed files array. We will need this for decompression and sha512sum 
+                        // checks
                         println!("File {} written. Wrote {} bytes", asset.name, e);
+                        downloaded_files[x] = path;
                     }
                     Err(e) => return convert_reqwest_error("Failed to write to file", e),
                 }
             }
         }
-        Ok(())
+        Ok(downloaded_files)
     }
 
     /* Reqwest has its own error type that seems to be incompatible with anyhow.
