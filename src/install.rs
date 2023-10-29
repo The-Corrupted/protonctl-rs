@@ -35,7 +35,7 @@ impl Install {
             .open(compressed_path) {
                 Ok(f) => f,
                 Err(e) => {
-                    return Err(anyhow::anyhow!("Failed to open compressed file for reading"));
+                    return Err(anyhow::anyhow!("Failed to open compressed file for reading: {:?}", e));
                 },
             };
         let mut archive = Archive::new(GzDecoder::new(file));
