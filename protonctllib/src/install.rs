@@ -2,6 +2,7 @@
 use std::io::Read;
 
 use crate::github::api::{download_assets, get_asset_ids, release_version, Release};
+use crate::cmd::{Run, InstallType};
 use crate::os_helper::get_compat_directory_safe;
 
 
@@ -10,23 +11,26 @@ use flate2::read::GzDecoder;
 use sha2::{Digest, Sha512};
 use tar::Archive;
 
+
 #[derive(Args, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Install {
-    #[arg(short = 'p', long = "proton-version")]
-    pub proton_version: String,
+    install_version: String,
 }
 
-impl Install {
-    pub fn run(&self) -> anyhow::Result<()> {
-        let compat_directory: std::path::PathBuf = get_compat_directory_safe()?;
-        let release: Release = release_version(self.proton_version.clone())?;
+impl Run for Install {
+    fn run(&self, install_type: InstallType) -> anyhow::Result<()> {
+        let compat_directory: std::path::PathBuf = get_compat_directory_safe(install_type)?;
+        let release: Release = release_version(install_type, self.install_version.clone())?;
         let assets = get_asset_ids(release)?;
-        let downloaded = download_assets(assets)?;
+        let downloaded = download_assets(install_type, assets)?;
         self.check_sha(&downloaded)?;
         self.unpack_file(downloaded[0].clone(),compat_directory)?;
         Ok(())
     }
+}
+
+impl Install {
 
     pub fn unpack_file(&self, compressed_path: std::path::PathBuf, output_path: std::path::PathBuf) -> anyhow::Result<()> {
         println!("Unpacking file");

@@ -6,25 +6,23 @@
 
 pub mod api {
     use crate::{constants, os_helper};
+    use crate::cmd::InstallType;
     use anyhow;
     use reqwest::blocking;
     use serde::Deserialize;
 
-    const GB: u64 = 1_073_741_824;
-    const MB: u64 = 1_048_576;
-
     #[derive(Debug, Deserialize, Clone)]
     pub struct Assets {
-        id: usize,
-        name: String,
+        pub id: usize,
+        pub name: String,
     }
 
     #[derive(Debug, Deserialize, Clone)]
     pub struct Release {
-        html_url: String,
-        tag_name: String,
-        assets: Vec<Assets>,
-        body: String,
+        pub html_url: String,
+        pub tag_name: String,
+        pub assets: Vec<Assets>,
+        pub body: String,
     }
 
     #[derive(Debug, Clone, Default)]
@@ -33,40 +31,23 @@ pub mod api {
         pub id: usize,
     }
 
-    impl Release {
-        pub fn get_version(&self) -> String {
-            self.tag_name.clone()
-        }
-
-        pub fn get_assets(&self) -> Vec<Assets> {
-            self.assets.clone()
-        }
-
-        pub fn get_release_url(&self) -> String {
-            self.html_url.clone()
-        }
-
-        pub fn get_body(&self) -> String {
-            self.body.clone()
-        }
-    }
-
     pub type Releases = Vec<Release>;
 
-    pub fn releases(per_page: Option<u8>, page: Option<usize>) -> anyhow::Result<Releases> {
-        let pp: String = if let Some(number) = per_page {
-            number.to_string()
+    pub fn releases(install_type: InstallType, per_page: Option<u8>, page: Option<u8>) -> anyhow::Result<Releases> {
+        let pp: u8 = if let Some(number) = per_page {
+            number
         } else {
-            String::from("10")
+            10
         };
-        let p: String = if let Some(number) = page {
-            number.to_string()
+        let p: u8 = if let Some(number) = page {
+            number
         } else {
-            String::from("1")
+            1
         };
+
         let response = blocking::Client::new()
-            .get(constants::PROTON_GE_RELEASE_PATH)
-            .query(&[("per_page", pp.to_string()), ("page", p.to_string())])
+            .get(get_url_path(install_type, false))
+            .query(&[("per_page", pp), ("page", p)])
             .header("user-agent", "protonctl-rs")
             .send()
             .or_else(|e| convert_reqwest_error("Failed to get releases", e))?;
@@ -75,9 +56,9 @@ pub mod api {
             .or_else(|e| convert_reqwest_error("Failed to deserialize response", e))
     }
 
-    pub fn latest_release() -> anyhow::Result<Release> {
+    pub fn latest_release(install_type: InstallType) -> anyhow::Result<Release> {
         let response = blocking::Client::new()
-            .get(constants::PROTON_GE_LATEST_PATH)
+            .get(get_url_path(install_type, true))
             .header("user-agent", "protonctl-rs")
             .send()
             .or_else(|e| convert_reqwest_error("Failed to get latest release", e))?;
@@ -86,8 +67,8 @@ pub mod api {
             .or_else(|e| convert_reqwest_error("Failed to deserialize response", e))
     }
 
-    pub fn release_version(version: String) -> anyhow::Result<Release> {
-        let mut release_url = constants::PROTON_GE_RELEASE_PATH.to_string();
+    pub fn release_version(install_type: InstallType, version: String) -> anyhow::Result<Release> {
+        let mut release_url = get_url_path(install_type, false);
         release_url.push_str("/tags/");
         release_url.push_str(version.as_str());
         let response = blocking::Client::new()
@@ -102,11 +83,11 @@ pub mod api {
 
     pub fn get_asset_ids(release: Release) -> anyhow::Result<[AssetId; 2]> {
         // Get the release assets and the release tar file
-        let version: String = release.get_version();
+        let version: String = release.tag_name;
         let tar_ball: String = format!("{}.tar.gz", version);
         let sha512sum: String = format!("{}.sha512sum", version);
         let mut ids: [AssetId; 2] = [AssetId::default(), AssetId::default()];
-        let assets = release.get_assets();
+        let assets = release.assets;
         for asset in assets {
             if asset.name == tar_ball {
                 let id = AssetId {
@@ -127,12 +108,12 @@ pub mod api {
         Ok(ids)
     }
 
-    pub fn download_assets(asset_ids: [AssetId; 2]) -> anyhow::Result<[std::path::PathBuf; 2]> {
+    pub fn download_assets(install_type: InstallType, asset_ids: [AssetId; 2]) -> anyhow::Result<[std::path::PathBuf; 2]> {
         println!("Downloading tar and sha files");
         let mut downloaded_files: [std::path::PathBuf; 2] = [std::path::PathBuf::new(), std::path::PathBuf::new()];
         for x in 0..asset_ids.len() {
             let asset = asset_ids[x].clone();
-            let mut asset_path = constants::PROTON_GE_RELEASE_PATH.to_owned();
+            let mut asset_path = get_url_path(install_type, false);
             asset_path.push_str(format!("/assets/{}", asset.id).as_str());
             let mut response = blocking::Client::new()
                 .get(asset_path)
@@ -169,6 +150,18 @@ pub mod api {
         }
         Ok(downloaded_files)
     }
+    
+    // Get the proper url based on the selected install type
+    fn get_url_path(install_type: InstallType, is_latest: bool) -> String {
+        let mut url = if is_latest {constants::LATEST_PATH.to_owned()} else {constants::RELEASES_PATH.to_owned()};
+        url = url.replacen("{}", constants::PROJECT_OWNER, 1);
+        match install_type {
+            InstallType::Proton => 
+                url.replacen("{}", constants::PROTON_PROJECT_NAME, 1),
+            InstallType::Wine =>
+                url.replacen("{}", constants::WINE_PROJECT_NAME, 1),
+        }
+    }
 
     /* Reqwest has its own error type that seems to be incompatible with anyhow.
      * For the sake of not returning loads of different error types, just convert
@@ -183,14 +176,12 @@ pub mod api {
     }
 
     fn bytes_conversion<'a>(e: u64) -> (u64, &'a str) {
-        if e >= GB {
-            return (e/GB, "gigabytes");
-        } else if e >= MB {
-            return (e/MB, "megabytes");
-        } else {
-            return (e, "bytes");
-        }
+        if e >= 1<<30 { (e/(1<<30), "GB") }
+        else if e >= 1<<10 { (e/(1<<30), "MB") }
+        else { (e, "B") }
     }
+
+
 }
 
 #[cfg(test)]
@@ -198,7 +189,8 @@ mod tests {
     #[test]
     fn can_get_releases() -> anyhow::Result<()> {
         use crate::github::api::releases;
-        let result = releases(Some(50), Some(1))?;
+        use crate::cmd::InstallType;
+        let result = releases(InstallType::Proton, Some(50), Some(1))?;
         assert_eq!(result.len(), 50);
         Ok(())
     }
@@ -206,23 +198,27 @@ mod tests {
     #[test]
     fn can_get_latest_release() -> anyhow::Result<()> {
         use crate::github::api::latest_release;
-        let _result = latest_release()?;
+        use crate::cmd::InstallType;
+        let _result = latest_release(InstallType::Proton)?;
         Ok(())
     }
 
     #[test]
     fn can_get_release_by_tag() -> anyhow::Result<()> {
+        use crate::cmd::InstallType;
         use crate::github::api::{release_version, Release};
         let version: String = String::from("GE-Proton8-4");
-        let release: Release = release_version(String::from("GE-Proton8-4"))?;
-        assert_eq!(release.get_version(), version);
+        let release: Release = release_version(InstallType::Proton, String::from("GE-Proton8-4"))?;
+        assert_eq!(release.tag_name, version);
         Ok(())
     }
 
     #[test]
     fn can_get_asset_ids() -> anyhow::Result<()> {
         use crate::github::api::{get_asset_ids, release_version, Release};
-        let release: Release = release_version(String::from("GE-Proton8-4"))?;
+        use crate::cmd::InstallType;
+
+        let release: Release = release_version(InstallType::Proton, String::from("GE-Proton8-4"))?;
         let ids = get_asset_ids(release)?;
         assert_eq!(ids[0].name, String::from("GE-Proton8-4.tar.gz"));
         assert_eq!(ids[1].name, String::from("GE-Proton8-4.sha512sum"));

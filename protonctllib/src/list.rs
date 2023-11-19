@@ -1,3 +1,4 @@
+use crate::cmd::{Run, InstallType};
 use crate::constants;
 use crate::github;
 use anyhow;
@@ -9,17 +10,15 @@ pub struct List {
     #[arg(short = 'n', long, default_value_t = 10, required = false)]
     pub number: u8,
     #[arg(short = 'p', long, default_value_t = 1, required = false)]
-    pub page: usize,
-    #[arg(short = 'e', long, default_value_t = String::from("proton"), required = false)]
-    pub emulator: String,
+    pub page: u8,
     #[arg(short = 'l', long, default_value_t = false, required = false)]
     pub local: bool,
 }
 
-impl List {
-    pub fn run(&self) -> anyhow::Result<()> {
+impl Run for List {
+    fn run(&self, install_type: InstallType) -> anyhow::Result<()> {
         if self.local {
-            let versions = get_installed_versions()?;
+            let versions = get_installed_versions(install_type)?;
             for version in versions {
                 let version = version.file_name();
                 match version.to_str() {
@@ -31,12 +30,12 @@ impl List {
                     }
                 }
             }
-        } else if let Some(releases) = get_releases_paged(self.number, self.page) {
+        } else if let Some(releases) = get_releases_paged(install_type, self.number, self.page) {
             for release in releases {
-                self.print_releases_formatted(
-                    release.get_version(),
-                    release.get_body(),
-                    release.get_release_url(),
+                print_releases_formatted(
+                    release.tag_name,
+                    release.body,
+                    release.html_url,
                 );
             }
         } else {
@@ -44,21 +43,21 @@ impl List {
         }
         Ok(())
     }
-
-    fn print_releases_formatted(&self, version: String, body: String, url: String) {
-        println!("Version: {}", version);
-        println!("Download: {}", url);
-        println!("{}", body);
-        println!("--------------------\n");
-    }
 }
 
-pub fn get_releases_paged(mut number: u8, page: usize) -> Option<github::api::Releases> {
+fn print_releases_formatted(version: String, body: String, url: String) {
+    println!("Version: {}", version);
+    println!("Download: {}", url);
+    println!("{}", body);
+    println!("--------------------\n");
+}
+
+pub fn get_releases_paged(install_type: InstallType, mut number: u8, page: u8) -> Option<github::api::Releases> {
     if number > constants::MAX_PER_PAGE {
         number = constants::MAX_PER_PAGE
     }
 
-    let releases_wrapped = github::api::releases(Some(number), Some(page));
+    let releases_wrapped = github::api::releases(install_type, Some(number), Some(page));
     let releases = match releases_wrapped {
         Ok(e) => e,
         Err(e) => {
@@ -69,16 +68,19 @@ pub fn get_releases_paged(mut number: u8, page: usize) -> Option<github::api::Re
     Some(releases)
 }
 
-pub fn get_installed_versions() -> anyhow::Result<Vec<std::fs::DirEntry>> {
-    let home: std::path::PathBuf = match constants::HOME_DIR.clone() {
-        Some(h) => h,
+pub fn get_installed_versions(install_type: InstallType) -> anyhow::Result<Vec<std::fs::DirEntry>> {
+    let mut home: std::path::PathBuf = match constants::HOME_DIR.clone() {
+        Some(h) => h.to_owned(),
         None => {
             return Err(anyhow::anyhow!("Failed to get home directory"));
         }
     };
-    let mut compat_folder = home.to_owned();
-    compat_folder.push(constants::STEAM_COMPAT_PATH.to_owned());
-    let dir_entries_result = std::fs::read_dir(compat_folder);
+    let compat_path = match install_type {
+        InstallType::Wine => constants::LUTRIS_RUNNERS_PATH.to_owned(),
+        InstallType::Proton => constants::STEAM_COMPAT_PATH.to_owned(),
+    };
+    home.push(compat_path);
+    let dir_entries_result = std::fs::read_dir(home);
     let mut entries: Vec<std::fs::DirEntry> = Vec::new();
     let dir_entries = match dir_entries_result {
         Ok(d) => d,
@@ -106,7 +108,8 @@ mod tests {
     #[test]
     fn can_get_local_dir() -> anyhow::Result<()> {
         use crate::list::get_installed_versions;
-        let results = get_installed_versions()?;
+        use crate::cmd::InstallType;
+        let results = get_installed_versions(InstallType::Proton)?;
         if !results.is_empty() {
             Ok(())
         } else {

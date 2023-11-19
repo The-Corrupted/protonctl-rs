@@ -1,16 +1,20 @@
 use crate::constants;
+use crate::cmd::InstallType;
 
-pub fn get_compat_directory_safe() -> anyhow::Result<std::path::PathBuf> {
+pub fn get_compat_directory_safe(install_type: InstallType) -> anyhow::Result<std::path::PathBuf> {
     let mut compat_dir = match constants::HOME_DIR.to_owned() {
         Some(home) => home,
         None => {
             return Err(anyhow::anyhow!("Could not find users home directory"));
         }
     };
-    compat_dir.push(constants::STEAM_COMPAT_PATH.clone());
+    let compat_path = match install_type {
+        InstallType::Wine => constants::LUTRIS_RUNNERS_PATH.to_owned(),
+        InstallType::Proton => constants::STEAM_COMPAT_PATH.to_owned(),
+    };
+    compat_dir.push(compat_path);
     if !compat_dir.exists() {
         std::fs::create_dir_all(&compat_dir)?;
-        println!("Created compatibility tools directory");
         Ok(compat_dir)
     } else {
         Ok(compat_dir)
@@ -27,7 +31,6 @@ pub fn get_install_directory_safe() -> anyhow::Result<std::path::PathBuf> {
     install_dir.push(constants::INSTALL_PATH.clone());
     if !install_dir.exists() {
         std::fs::create_dir_all(&install_dir)?;
-        println!("Create shared install directory");
         Ok(install_dir)
     } else {
         Ok(install_dir)

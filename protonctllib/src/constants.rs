@@ -2,10 +2,14 @@ use dirs::home_dir;
 use lazy_static::lazy_static;
 
 pub const MAX_PER_PAGE: u8 = 50;
-pub const PROTON_GE_RELEASE_PATH: &str =
-    "https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases";
-pub const PROTON_GE_LATEST_PATH: &str =
-    "https://api.github.com/repos/GloriousEggroll/proton-ge-custom/releases/latest";
+
+pub const PROJECT_OWNER: &str = "GloriousEggroll";
+pub const WINE_PROJECT_NAME: &str = "wine-ge-custom";
+pub const PROTON_PROJECT_NAME: &str = "proton-ge-custom";
+pub const RELEASES_PATH: &str =
+    "https://api.github.com/repos/{}/{}/releases";
+pub const LATEST_PATH: &str =
+    "https://api.github.com/repos/{}/{}/releases/latest";
 
 lazy_static! {
     pub static ref HOME_DIR: Option<std::path::PathBuf> = home_dir();
