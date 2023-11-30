@@ -7,7 +7,7 @@
 pub mod api {
     use crate::{constants, os_helper};
     use crate::cmd::InstallType;
-    use anyhow;
+    use anyhow::Context;
     use reqwest::blocking;
     use serde::Deserialize;
 
@@ -34,26 +34,18 @@ pub mod api {
     pub type Releases = Vec<Release>;
 
     pub fn releases(install_type: InstallType, per_page: Option<u8>, page: Option<u8>) -> anyhow::Result<Releases> {
-        let pp: u8 = if let Some(number) = per_page {
-            number
-        } else {
-            10
-        };
-        let p: u8 = if let Some(number) = page {
-            number
-        } else {
-            1
-        };
+        let pp: u8 = per_page.unwrap_or(10);
+        let p: u8 = page.unwrap_or(1);
 
         let response = blocking::Client::new()
             .get(get_url_path(install_type, false))
             .query(&[("per_page", pp), ("page", p)])
             .header("user-agent", "protonctl-rs")
             .send()
-            .or_else(|e| convert_reqwest_error("Failed to get releases", e))?;
+            .context("Failed to get releases")?;
         response
             .json::<Releases>()
-            .or_else(|e| convert_reqwest_error("Failed to deserialize response", e))
+            .context("Failed to deserialize response")
     }
 
     pub fn latest_release(install_type: InstallType) -> anyhow::Result<Release> {
@@ -61,10 +53,10 @@ pub mod api {
             .get(get_url_path(install_type, true))
             .header("user-agent", "protonctl-rs")
             .send()
-            .or_else(|e| convert_reqwest_error("Failed to get latest release", e))?;
+            .context("Failed to get latest release")?;
         response
             .json::<Release>()
-            .or_else(|e| convert_reqwest_error("Failed to deserialize response", e))
+            .context("Failed to deserialize response")
     }
 
     pub fn release_version(install_type: InstallType, version: String) -> anyhow::Result<Release> {
@@ -75,21 +67,23 @@ pub mod api {
             .get(release_url)
             .header("user-agent", "protonctl-rs")
             .send()
-            .or_else(|e| convert_reqwest_error(format!("Failed to get release {}", version), e))?;
+            .context(format!("Failed to get release {}", version))?;
         response
             .json::<Release>()
-            .or_else(|e| convert_reqwest_error("Failed to get release", e))
+            .context("Failed to get release")
     }
 
-    pub fn get_asset_ids(release: Release) -> anyhow::Result<[AssetId; 2]> {
+    pub fn get_asset_ids(install_type: InstallType, release: Release) -> anyhow::Result<[AssetId; 2]> {
         // Get the release assets and the release tar file
-        let version: String = release.tag_name;
-        let tar_ball: String = format!("{}.tar.gz", version);
-        let sha512sum: String = format!("{}.sha512sum", version);
+        let compression_postfix = match install_type {
+            InstallType::Wine => ".tar.xz",
+            InstallType::Proton => ".tar.gz"
+        };
+        let sha_postfix = ".sha512sum";
         let mut ids: [AssetId; 2] = [AssetId::default(), AssetId::default()];
         let assets = release.assets;
         for asset in assets {
-            if asset.name == tar_ball {
+            if asset.name.ends_with(compression_postfix) {
                 let id = AssetId {
                     name: asset.name,
                     id: asset.id,
@@ -97,7 +91,7 @@ pub mod api {
                 ids[0] = id;
                 continue;
             }
-            if asset.name == sha512sum {
+            if asset.name.ends_with(sha_postfix) {
                 let id = AssetId {
                     name: asset.name,
                     id: asset.id,
@@ -120,31 +114,26 @@ pub mod api {
                 .header("user-agent", "protonctl-rs")
                 .header("Accept", "application/octet-stream")
                 .send()
-                .or_else(|e| convert_reqwest_error("Failed to get asset", e))?;
+                .context("Failed to get asset ID")?;
             if response.status().is_success() {
                 // We got what we wanted. Stream the body to file
                 let mut path = os_helper::get_install_directory_safe()?;
                 path.push(&asset.name);
-                let mut file_handle = match std::fs::OpenOptions::new()
+                let mut file_handle = std::fs::OpenOptions::new()
                     .write(true)
                     .create(true)
                     .open(&path)
-                {
-                    Ok(f) => f,
-                    Err(_e) => {
-                        return Err(anyhow::anyhow!("Failed to open file: {:?}", path));
-                    }
-                };
+                    .context("Failed to open file for writing")?;
                 match response.copy_to(&mut file_handle) {
                     Ok(e) => {
                         // We successfully got the file. Print success status and add it to the
                         // installed files array. We will need this for decompression and sha512sum 
                         // checks
                         let (units, prefix) = bytes_conversion(e);
-                        println!("File {} written. Wrote {} {}", asset.name, units, prefix);
+                        println!("File {} written. Wrote {units} {prefix}", asset.name);
                         downloaded_files[x] = path;
                     }
-                    Err(e) => return convert_reqwest_error("Failed to write to file", e),
+                    Err(e) => return Err(anyhow::anyhow!(format!("Failed to write to file: {}", e))),
                 }
             }
         }
@@ -161,18 +150,6 @@ pub mod api {
             InstallType::Wine =>
                 url.replacen("{}", constants::WINE_PROJECT_NAME, 1),
         }
-    }
-
-    /* Reqwest has its own error type that seems to be incompatible with anyhow.
-     * For the sake of not returning loads of different error types, just convert
-     * the reqwest error to an anyhow error. I'm probably doing this poorly
-     * and should look into better ways of handling errors
-     */
-    fn convert_reqwest_error<S, T>(message: S, e: reqwest::Error) -> Result<T, anyhow::Error>
-    where
-        S: ToString + std::fmt::Display,
-    {
-        Err(anyhow::anyhow!("{}: {:?}", message, e))
     }
 
     fn bytes_conversion<'a>(e: u64) -> (u64, &'a str) {
@@ -219,7 +196,7 @@ mod tests {
         use crate::cmd::InstallType;
 
         let release: Release = release_version(InstallType::Proton, String::from("GE-Proton8-4"))?;
-        let ids = get_asset_ids(release)?;
+        let ids = get_asset_ids(InstallType::Proton, release)?;
         assert_eq!(ids[0].name, String::from("GE-Proton8-4.tar.gz"));
         assert_eq!(ids[1].name, String::from("GE-Proton8-4.sha512sum"));
         Ok(())

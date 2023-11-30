@@ -17,3 +17,4 @@ tar =  { version = "0.4.38" }
 flate2 = { version = "1.0.28" }
 sha2 = { version = "0.10.8" }
 termcolor = { version = "1.3.0" }
+xz2 = { version = "0.1.7" }
