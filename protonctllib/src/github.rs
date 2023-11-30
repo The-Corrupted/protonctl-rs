@@ -150,7 +150,7 @@ pub mod api {
 
     fn bytes_conversion<'a>(e: u64) -> (u64, &'a str) {
         if e >= 1<<30 { (e/(1<<30), "GB") }
-        else if e >= 1<<10 { (e/(1<<30), "MB") }
+        else if e >= 1<<20 { (e/(1<<20), "MB") }
         else { (e, "B") }
     }
 
