@@ -15,7 +15,7 @@ pub fn gunzip(compressed: std::path::PathBuf, out: PathBuf) -> Result<()> {
     Ok(())
 }
 
-pub fn lmza(compressed: std::path::PathBuf, out: PathBuf) -> Result<()> {
+pub fn lzma(compressed: std::path::PathBuf, out: PathBuf) -> Result<()> {
     println!("Unpacking lzma compressed file");
     let file = std::fs::OpenOptions::new()
         .read(true)

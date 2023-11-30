@@ -26,7 +26,7 @@ impl Run for Install {
         let downloaded = download_assets(install_type, assets)?;
         self.check_sha(&downloaded)?;
         match install_type {
-            InstallType::Wine => decompress::lmza(downloaded[0].clone(), compat_directory)?,
+            InstallType::Wine => decompress::lzma(downloaded[0].clone(), compat_directory)?,
             InstallType::Proton => decompress::gunzip(downloaded[0].clone(), compat_directory)?
         }
         Ok(())

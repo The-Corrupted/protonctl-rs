@@ -1,8 +1,4 @@
 // Structs/Helpers for the github releases api
-// Improve errors. We currently just return a String if there is an error
-// to avoid the complications of potentially returning multiple different
-// errors from the same function. This is a 'dumb' way to do error handling
-// and we should do it the 'right' way
 
 pub mod api {
     use crate::{constants, os_helper};
