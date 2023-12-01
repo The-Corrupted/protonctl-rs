@@ -1,5 +1,12 @@
 # protonctl-rs
-Proton-GE manager written in Rust
+Proton-GE manager written in Rust and modelled after the ctl set of utilities.
+
+# Example usage:
+protonctl wine list -n 8 -p 10 -- Lists 8 wine-ge entries from the 10th page.
+protonctl proton list -l -- List all local proton installs.
+protonctl wine install Wine-GE-Proton8-24 -- Install wine-ge-lutris v. 8-24
+protonctl remove -a -- Remove all currently installed proton versions.
+protonctl remove -c -- Remove any downloaded files that weren't cleaned up at the end of an install.
 
 # TODO
 * The code needs to be cleaned up. The goal was to get something working. Now that it's working, things need to be better organized and the structs used/means of passing data around needs to be looked at again.
