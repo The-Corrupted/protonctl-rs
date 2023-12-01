@@ -1,7 +1,7 @@
 # protonctl-rs
 Proton-GE manager written in Rust and modelled after the ctl set of utilities.
 
-# Example usage:
+# Example usage
 
 protonctl wine list -n 8 -p 10 -- Lists 8 wine-ge entries from the 10th page.
 
