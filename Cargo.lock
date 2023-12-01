@@ -747,7 +747,6 @@ dependencies = [
  "clap",
  "dirs",
  "flate2",
- "lazy_static",
  "reqwest",
  "serde",
  "serde_json",

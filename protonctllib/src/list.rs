@@ -1,7 +1,8 @@
 use crate::cmd::{Run, InstallType};
-use crate::constants;
+use crate::constants::{LockReferences, paths, MAX_PER_PAGE};
 use crate::github;
 use anyhow;
+use dirs::home_dir;
 use clap::Args;
 
 #[derive(Args, Debug)]
@@ -53,8 +54,8 @@ fn print_releases_formatted(version: String, body: String, url: String) {
 }
 
 pub fn get_releases_paged(install_type: InstallType, mut number: u8, page: u8) -> Option<github::api::Releases> {
-    if number > constants::MAX_PER_PAGE {
-        number = constants::MAX_PER_PAGE
+    if number > MAX_PER_PAGE {
+        number = MAX_PER_PAGE
     }
 
     let releases_wrapped = github::api::releases(install_type, Some(number), Some(page));
@@ -69,15 +70,13 @@ pub fn get_releases_paged(install_type: InstallType, mut number: u8, page: u8) -
 }
 
 pub fn get_installed_versions(install_type: InstallType) -> anyhow::Result<Vec<std::fs::DirEntry>> {
-    let mut home: std::path::PathBuf = match constants::HOME_DIR.clone() {
-        Some(h) => h.to_owned(),
-        None => {
-            return Err(anyhow::anyhow!("Failed to get home directory"));
-        }
-    };
+    let mut home: std::path::PathBuf = home_dir()
+        .ok_or(anyhow::anyhow!("Couldn't get users home directory"))?; 
     let compat_path = match install_type {
-        InstallType::Wine => constants::LUTRIS_RUNNERS_PATH.to_owned(),
-        InstallType::Proton => constants::STEAM_COMPAT_PATH.to_owned(),
+        InstallType::Wine => paths()
+            .get(&LockReferences::LutrisRunnersPath).unwrap(),
+        InstallType::Proton => paths()
+            .get(&LockReferences::SteamCompatPath).unwrap(),
     };
     home.push(compat_path);
     let dir_entries_result = std::fs::read_dir(home);

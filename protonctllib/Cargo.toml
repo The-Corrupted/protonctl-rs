@@ -9,7 +9,6 @@ edition = "2021"
 anyhow.workspace = true
 clap.workspace = true
 dirs = { version = "5.0.1" } 
-lazy_static = { version = "1.4.0" }
 reqwest = { version = "0.11.22", features = ["json", "stream", "blocking"] }
 serde = { version = "1.0.190", features = ["derive"] }
 serde_json = { version = "1.0.107" }

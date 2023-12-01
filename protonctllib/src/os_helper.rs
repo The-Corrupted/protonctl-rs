@@ -1,15 +1,20 @@
-use crate::constants;
+use crate::constants::{paths, LockReferences};
 use crate::cmd::InstallType;
 
 use anyhow::Context;
+use dirs::home_dir;
 
 pub fn get_compat_directory_safe(install_type: InstallType) -> anyhow::Result<std::path::PathBuf> {
-    let mut compat_dir = constants::HOME_DIR.to_owned()
-        .context("Failed to get users home directory")?;
+    let mut compat_dir = home_dir()
+        .ok_or(anyhow::anyhow!("Failed to get users home directory"))?;
 
     let compat_path = match install_type {
-        InstallType::Wine => constants::LUTRIS_RUNNERS_PATH.to_owned(),
-        InstallType::Proton => constants::STEAM_COMPAT_PATH.to_owned(),
+        InstallType::Wine => paths()
+            .get(&LockReferences::LutrisRunnersPath)
+            .unwrap(),
+        InstallType::Proton => paths()
+            .get(&LockReferences::SteamCompatPath)
+            .unwrap(),
     };
     compat_dir.push(compat_path);
     if !compat_dir.exists() {
@@ -21,9 +26,11 @@ pub fn get_compat_directory_safe(install_type: InstallType) -> anyhow::Result<st
 }
 
 pub fn get_download_directory_safe() -> anyhow::Result<std::path::PathBuf> {
-    let mut install_dir = constants::HOME_DIR.to_owned()
-        .context("Could not find users home directory")?;
-    install_dir.push(constants::INSTALL_PATH.clone());
+    let mut install_dir = home_dir()
+        .ok_or(anyhow::anyhow!("Couldn't get users home directory"))?;
+    install_dir.push(paths()
+                     .get(&LockReferences::InstallPath)
+                     .unwrap());
     if !install_dir.exists() {
         std::fs::create_dir_all(&install_dir)?;
         Ok(install_dir)

@@ -1,5 +1,6 @@
-use dirs::home_dir;
-use lazy_static::lazy_static;
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::sync::OnceLock;
 
 pub const MAX_PER_PAGE: u8 = 50;
 
@@ -11,12 +12,21 @@ pub const RELEASES_PATH: &str =
 pub const LATEST_PATH: &str =
     "https://api.github.com/repos/{}/{}/releases/latest";
 
-lazy_static! {
-    pub static ref HOME_DIR: Option<std::path::PathBuf> = home_dir();
-    pub static ref STEAM_COMPAT_PATH: std::path::PathBuf =
-        std::path::PathBuf::from(".local/share/Steam/compatibilitytools.d");
-    pub static ref LUTRIS_RUNNERS_PATH: std::path::PathBuf =
-        std::path::PathBuf::from(".local/share/lutris/runners/wine");
-    pub static ref INSTALL_PATH: std::path::PathBuf =
-        std::path::PathBuf::from(".local/share/protonctl");
+#[derive(Hash, Eq, PartialEq, Copy, Clone)]
+pub enum LockReferences {
+    SteamCompatPath,
+    LutrisRunnersPath,
+    InstallPath,
+}
+
+pub(crate) fn paths() -> &'static HashMap<LockReferences, PathBuf> {
+    static PATHS: OnceLock<HashMap<LockReferences, PathBuf>> = OnceLock::new();
+    PATHS.get_or_init(|| {
+        let paths = HashMap::from([
+                      (LockReferences::LutrisRunnersPath, PathBuf::from(".local/share/lutris/runners/wine")),
+                      (LockReferences::SteamCompatPath, PathBuf::from(".local/share/Steam/compatibilitytools.d")),
+                      (LockReferences::InstallPath, PathBuf::from(".local/share/protonctl")),
+        ]);
+        paths
+    })
 }
