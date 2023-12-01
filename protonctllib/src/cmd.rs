@@ -3,7 +3,6 @@ use crate::list::List;
 use crate::remove::Remove;
 use clap::{Parser, Subcommand, ValueEnum};
 
-
 pub trait Run {
     fn run(&self, install_type: InstallType) -> anyhow::Result<()>;
 }

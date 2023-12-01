@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
 use flate2::read::GzDecoder;
+use std::path::PathBuf;
 use tar::Archive;
 use xz2::read::XzDecoder;
-use std::path::PathBuf;
 
 pub fn gunzip(compressed: std::path::PathBuf, out: PathBuf) -> Result<()> {
     println!("Unpacking gunzip compressed file");
@@ -11,7 +11,9 @@ pub fn gunzip(compressed: std::path::PathBuf, out: PathBuf) -> Result<()> {
         .open(compressed)
         .context("Failed to open compressed file for reading")?;
     let mut archive = Archive::new(GzDecoder::new(file));
-    archive.unpack(out).context("Failed to unpack gunzip file")?;
+    archive
+        .unpack(out)
+        .context("Failed to unpack gunzip file")?;
     Ok(())
 }
 

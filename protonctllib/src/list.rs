@@ -1,9 +1,9 @@
-use crate::cmd::{Run, InstallType};
-use crate::constants::{LockReferences, paths, MAX_PER_PAGE};
+use crate::cmd::{InstallType, Run};
+use crate::constants::{paths, LockReferences, MAX_PER_PAGE};
 use crate::github;
 use anyhow;
-use dirs::home_dir;
 use clap::Args;
+use dirs::home_dir;
 
 #[derive(Args, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -33,11 +33,7 @@ impl Run for List {
             }
         } else if let Some(releases) = get_releases_paged(install_type, self.number, self.page) {
             for release in releases {
-                print_releases_formatted(
-                    release.tag_name,
-                    release.body,
-                    release.html_url,
-                );
+                print_releases_formatted(release.tag_name, release.body, release.html_url);
             }
         } else {
             return Err(anyhow::anyhow!("Failed to get releases"));
@@ -53,7 +49,11 @@ fn print_releases_formatted(version: String, body: String, url: String) {
     println!("--------------------\n");
 }
 
-pub fn get_releases_paged(install_type: InstallType, mut number: u8, page: u8) -> Option<github::api::Releases> {
+pub fn get_releases_paged(
+    install_type: InstallType,
+    mut number: u8,
+    page: u8,
+) -> Option<github::api::Releases> {
     if number > MAX_PER_PAGE {
         number = MAX_PER_PAGE
     }
@@ -70,13 +70,11 @@ pub fn get_releases_paged(install_type: InstallType, mut number: u8, page: u8) -
 }
 
 pub fn get_installed_versions(install_type: InstallType) -> anyhow::Result<Vec<std::fs::DirEntry>> {
-    let mut home: std::path::PathBuf = home_dir()
-        .ok_or(anyhow::anyhow!("Couldn't get users home directory"))?; 
+    let mut home: std::path::PathBuf =
+        home_dir().ok_or(anyhow::anyhow!("Couldn't get users home directory"))?;
     let compat_path = match install_type {
-        InstallType::Wine => paths()
-            .get(&LockReferences::LutrisRunnersPath).unwrap(),
-        InstallType::Proton => paths()
-            .get(&LockReferences::SteamCompatPath).unwrap(),
+        InstallType::Wine => paths().get(&LockReferences::LutrisRunnersPath).unwrap(),
+        InstallType::Proton => paths().get(&LockReferences::SteamCompatPath).unwrap(),
     };
     home.push(compat_path);
     let dir_entries_result = std::fs::read_dir(home);
@@ -106,8 +104,8 @@ pub fn get_installed_versions(install_type: InstallType) -> anyhow::Result<Vec<s
 mod tests {
     #[test]
     fn can_get_local_dir() -> anyhow::Result<()> {
-        use crate::list::get_installed_versions;
         use crate::cmd::InstallType;
+        use crate::list::get_installed_versions;
         let results = get_installed_versions(InstallType::Proton)?;
         if !results.is_empty() {
             Ok(())
