@@ -113,7 +113,7 @@ pub mod api {
                 .context("Failed to get asset ID")?;
             if response.status().is_success() {
                 // We got what we wanted. Stream the body to file
-                let mut path = os_helper::get_install_directory_safe()?;
+                let mut path = os_helper::get_download_directory_safe()?;
                 path.push(&asset.name);
                 let mut file_handle = std::fs::OpenOptions::new()
                     .write(true)

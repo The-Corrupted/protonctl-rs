@@ -3,7 +3,7 @@ use std::io::Read;
 
 use crate::github::api::{download_assets, get_asset_ids, release_version, Release};
 use crate::cmd::{Run, InstallType};
-use crate::os_helper::get_compat_directory_safe;
+use crate::os_helper::{get_compat_directory_safe, remove_download_pair};
 
 use anyhow::{Context};
 use clap::Args;
@@ -29,6 +29,7 @@ impl Run for Install {
             InstallType::Wine => decompress::lzma(downloaded[0].clone(), compat_directory)?,
             InstallType::Proton => decompress::gunzip(downloaded[0].clone(), compat_directory)?
         }
+        remove_download_pair(&downloaded);
         Ok(())
     }
 }
