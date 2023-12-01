@@ -1,9 +1,11 @@
 use crate::cmd::{InstallType, Run};
 use crate::constants::{paths, LockReferences, MAX_PER_PAGE};
 use crate::github;
+use crate::colored_out::StdOut;
 use anyhow;
 use clap::Args;
 use dirs::home_dir;
+use termcolor::{ColorSpec, Color};
 
 #[derive(Args, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -18,6 +20,7 @@ pub struct List {
 
 impl Run for List {
     fn run(&self, install_type: InstallType) -> anyhow::Result<()> {
+        let mut out = StdOut::new(termcolor::ColorChoice::Always);
         if self.local {
             let versions = get_installed_versions(install_type)?;
             for version in versions {
@@ -33,20 +36,34 @@ impl Run for List {
             }
         } else if let Some(releases) = get_releases_paged(install_type, self.number, self.page) {
             for release in releases {
-                print_releases_formatted(release.tag_name, release.body, release.html_url);
+                print_releases_formatted(&mut out, release.tag_name, release.body, release.html_url);
             }
         } else {
             return Err(anyhow::anyhow!("Failed to get releases"));
         }
+        print_err(out.flush());
         Ok(())
     }
 }
 
-fn print_releases_formatted(version: String, body: String, url: String) {
-    println!("Version: {}", version);
-    println!("Download: {}", url);
-    println!("{}", body);
-    println!("--------------------\n");
+fn print_releases_formatted(out: &mut StdOut, version: String, body: String, url: String) {
+    let mut color_spec = ColorSpec::new();
+    print_err(out.set_color_spec(color_spec.set_fg(Some(Color::White)).set_bold(true))
+        .write("Version: "));
+    print_err(out.set_color_spec(color_spec.set_fg(Some(Color::Green)).set_bold(false).set_italic(true))
+        .write(format!("{}\n", version)));
+    print_err(out.set_color_spec(color_spec.set_fg(Some(Color::White)).set_bold(true).set_italic(false))
+        .write("Download: "));
+    print_err(out.set_color_spec(color_spec.set_fg(Some(Color::Blue)).set_bold(false).set_italic(true))
+        .write(format!("{}\n", url)));
+    print_err(out.set_color_spec(color_spec.set_fg(Some(Color::Rgb(96,96,96))).set_italic(false))
+                  .write(format!("{}\n\n", body)));
+}
+
+fn print_err(result: anyhow::Result<&mut StdOut>) {
+    if let Err(e) = result {
+        eprintln!("Failed to print colored text: {}", e);
+    }
 }
 
 pub fn get_releases_paged(
