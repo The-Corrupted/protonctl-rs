@@ -1,35 +1,33 @@
 // Structs/Helpers for the github releases api
 
 pub mod api {
+    use std::io::Write;
     use crate::cmd::InstallType;
     use crate::{constants, os_helper};
     use anyhow::Context;
-    use reqwest::blocking;
+    use reqwest;
     use serde::Deserialize;
+    use indicatif::{ProgressBar, ProgressStyle, HumanBytes};
 
-    #[derive(Debug, Deserialize, Clone)]
-    pub struct Assets {
-        pub id: usize,
+    #[derive(Deserialize, Debug, Clone, Default)]
+    pub struct AssetId {
         pub name: String,
+        pub id: u64,
+        pub size: u64,
     }
 
     #[derive(Debug, Deserialize, Clone)]
     pub struct Release {
         pub html_url: String,
         pub tag_name: String,
-        pub assets: Vec<Assets>,
+        pub assets: Vec<AssetId>,
         pub body: String,
     }
 
-    #[derive(Debug, Clone, Default)]
-    pub struct AssetId {
-        pub name: String,
-        pub id: usize,
-    }
 
     pub type Releases = Vec<Release>;
 
-    pub fn releases(
+    pub async fn releases(
         install_type: InstallType,
         per_page: Option<u8>,
         page: Option<u8>,
@@ -37,38 +35,44 @@ pub mod api {
         let pp: u8 = per_page.unwrap_or(10);
         let p: u8 = page.unwrap_or(1);
 
-        let response = blocking::Client::new()
+        let response = reqwest::Client::new()
             .get(get_url_path(install_type, false))
             .query(&[("per_page", pp), ("page", p)])
             .header("user-agent", "protonctl-rs")
             .send()
+            .await
             .context("Failed to get releases")?;
         response
             .json::<Releases>()
+            .await
             .context("Failed to deserialize response")
     }
 
-    pub fn latest_release(install_type: InstallType) -> anyhow::Result<Release> {
-        let response = blocking::Client::new()
+    pub async fn latest_release(install_type: InstallType) -> anyhow::Result<Release> {
+        let response = reqwest::Client::new()
             .get(get_url_path(install_type, true))
             .header("user-agent", "protonctl-rs")
             .send()
+            .await
             .context("Failed to get latest release")?;
         response
             .json::<Release>()
+            .await
             .context("Failed to deserialize response")
     }
 
-    pub fn release_version(install_type: InstallType, version: String) -> anyhow::Result<Release> {
+    pub async fn release_version(install_type: InstallType, version: String) -> anyhow::Result<Release> {
         let mut release_url = get_url_path(install_type, false);
         release_url.push_str("/tags/");
         release_url.push_str(version.as_str());
-        let response = blocking::Client::new()
+        let response = reqwest::Client::new()
             .get(release_url)
             .header("user-agent", "protonctl-rs")
             .send()
+            .await
             .context(format!("Failed to get release {}", version))?;
-        response.json::<Release>().context("Failed to get release")
+        response.json::<Release>()
+            .await.context("Failed to get release")
     }
 
     pub fn get_asset_ids(
@@ -88,6 +92,7 @@ pub mod api {
                 let id = AssetId {
                     name: asset.name,
                     id: asset.id,
+                    size: asset.size,
                 };
                 ids[0] = id;
                 continue;
@@ -96,6 +101,7 @@ pub mod api {
                 let id = AssetId {
                     name: asset.name,
                     id: asset.id,
+                    size: asset.size,
                 };
                 ids[1] = id;
             }
@@ -103,22 +109,33 @@ pub mod api {
         Ok(ids)
     }
 
-    pub fn download_assets(
+    pub async fn download_assets(
         install_type: InstallType,
         asset_ids: [AssetId; 2],
     ) -> anyhow::Result<[std::path::PathBuf; 2]> {
-        println!("Downloading tar and sha files");
+        // Start downloading files
         let mut downloaded_files: [std::path::PathBuf; 2] =
             [std::path::PathBuf::new(), std::path::PathBuf::new()];
+        // Get progress bar stuff setup
+        let total_size = asset_ids[0].size + asset_ids[1].size;
+
+        let pb = ProgressBar::new(total_size);
+        pb.set_style(ProgressStyle::with_template("{prefix:.bold} {bar:40} {msg:.dim}")
+            .unwrap());
+        pb.set_prefix("Download:");
+        let p_human = HumanBytes(total_size).to_string();
+        let mut bytes_read = 0;
+
         for x in 0..asset_ids.len() {
             let asset = asset_ids[x].clone();
             let mut asset_path = get_url_path(install_type, false);
             asset_path.push_str(format!("/assets/{}", asset.id).as_str());
-            let mut response = blocking::Client::new()
+            let mut response = reqwest::Client::new()
                 .get(asset_path)
                 .header("user-agent", "protonctl-rs")
                 .header("Accept", "application/octet-stream")
                 .send()
+                .await
                 .context("Failed to get asset ID")?;
             if response.status().is_success() {
                 // We got what we wanted. Stream the body to file
@@ -129,21 +146,24 @@ pub mod api {
                     .create(true)
                     .open(&path)
                     .context("Failed to open file for writing")?;
-                match response.copy_to(&mut file_handle) {
-                    Ok(e) => {
-                        // We successfully got the file. Print success status and add it to the
-                        // installed files array. We will need this for decompression and sha512sum
-                        // checks
-                        let (units, prefix) = bytes_conversion(e);
-                        println!("File {} written. Wrote {units} {prefix}", asset.name);
-                        downloaded_files[x] = path;
-                    }
-                    Err(e) => {
-                        return Err(anyhow::anyhow!(format!("Failed to write to file: {}", e)))
-                    }
-                }
-            }
+               while let Ok(chunk) = response.chunk().await {
+                   if let Some(bytes) = chunk {
+                       let read = bytes.len() as u64; 
+                       bytes_read += read;
+                       if let Err(_e) = file_handle.write_all(&bytes) {
+                           println!("Failed to write chunk");
+                           return Err(anyhow::anyhow!("Chunk failed to write to file"));
+                       }
+                       pb.inc(read);
+                       pb.set_message(format!("{}/{}", HumanBytes(bytes_read), p_human));
+                   } else {
+                       break;
+                   }
+               }
+               downloaded_files[x] = path;
+           }
         }
+        pb.finish();
         Ok(downloaded_files)
     }
 
@@ -160,53 +180,43 @@ pub mod api {
             InstallType::Wine => url.replacen("{}", constants::WINE_PROJECT_NAME, 1),
         }
     }
-
-    fn bytes_conversion<'a>(e: u64) -> (u64, &'a str) {
-        if e >= 1 << 30 {
-            (e / (1 << 30), "GB")
-        } else if e >= 1 << 20 {
-            (e / (1 << 20), "MB")
-        } else {
-            (e, "B")
-        }
-    }
 }
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn can_get_releases() -> anyhow::Result<()> {
+    #[tokio::test]
+    async fn can_get_releases() -> anyhow::Result<()> {
         use crate::cmd::InstallType;
         use crate::github::api::releases;
-        let result = releases(InstallType::Proton, Some(50), Some(1))?;
+        let result = releases(InstallType::Proton, Some(50), Some(1)).await?;
         assert_eq!(result.len(), 50);
         Ok(())
     }
 
-    #[test]
-    fn can_get_latest_release() -> anyhow::Result<()> {
+    #[tokio::test]
+    async fn can_get_latest_release() -> anyhow::Result<()> {
         use crate::cmd::InstallType;
         use crate::github::api::latest_release;
-        let _result = latest_release(InstallType::Proton)?;
+        let _result = latest_release(InstallType::Proton).await?;
         Ok(())
     }
 
-    #[test]
-    fn can_get_release_by_tag() -> anyhow::Result<()> {
+    #[tokio::test]
+    async fn can_get_release_by_tag() -> anyhow::Result<()> {
         use crate::cmd::InstallType;
         use crate::github::api::{release_version, Release};
         let version: String = String::from("GE-Proton8-4");
-        let release: Release = release_version(InstallType::Proton, String::from("GE-Proton8-4"))?;
+        let release: Release = release_version(InstallType::Proton, String::from("GE-Proton8-4")).await?;
         assert_eq!(release.tag_name, version);
         Ok(())
     }
 
-    #[test]
-    fn can_get_asset_ids() -> anyhow::Result<()> {
+    #[tokio::test]
+    async fn can_get_asset_ids() -> anyhow::Result<()> {
         use crate::cmd::InstallType;
         use crate::github::api::{get_asset_ids, release_version, Release};
 
-        let release: Release = release_version(InstallType::Proton, String::from("GE-Proton8-4"))?;
+        let release: Release = release_version(InstallType::Proton, String::from("GE-Proton8-4")).await?;
         let ids = get_asset_ids(InstallType::Proton, release)?;
         assert_eq!(ids[0].name, String::from("GE-Proton8-4.tar.gz"));
         assert_eq!(ids[1].name, String::from("GE-Proton8-4.sha512sum"));

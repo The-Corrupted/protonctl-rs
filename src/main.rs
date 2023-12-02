@@ -1,18 +1,19 @@
 use clap::Parser;
-use protonctllib::cmd::{Actions, ProtonCtl, Run};
+use protonctllib::cmd::{Actions, ProtonCtl};
 
-fn main() -> anyhow::Result<()> {
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
     let proton = ProtonCtl::parse();
     if let Some(subcommand) = proton.actions {
         match subcommand {
             Actions::Install(install) => {
-                install.run(proton.install_type)?;
+                install.run(proton.install_type).await?;
             }
             Actions::List(list) => {
-                list.run(proton.install_type)?;
+                list.run(proton.install_type).await?;
             }
             Actions::Remove(remove) => {
-                remove.run(proton.install_type)?;
+                remove.run(proton.install_type).await?;
             }
         }
     }

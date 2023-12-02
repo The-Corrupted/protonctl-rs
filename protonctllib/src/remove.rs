@@ -1,4 +1,4 @@
-use crate::cmd::{InstallType, Run};
+use crate::cmd::InstallType;
 use crate::constants::{paths, LockReferences};
 use crate::list::get_installed_versions;
 use crate::os_helper::{remove_all_in, remove_entry};
@@ -17,8 +17,8 @@ pub struct Remove {
     pub pw_version: std::path::PathBuf,
 }
 
-impl Run for Remove {
-    fn run(&self, install_type: InstallType) -> anyhow::Result<()> {
+impl Remove {
+    pub async fn run(&self, install_type: InstallType) -> anyhow::Result<()> {
         let mut compat_path: std::path::PathBuf =
             home_dir().ok_or(anyhow::anyhow!("Failed to get users home directory"))?;
         let loc = match install_type {
@@ -40,7 +40,7 @@ impl Run for Remove {
             {
                 remove_entry(&item.path())?;
             } else {
-                println!("{:?} not found", self.pw_version);
+                eprintln!("{:?} not found", self.pw_version);
             }
         }
         Ok(())

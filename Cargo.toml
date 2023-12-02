@@ -10,9 +10,11 @@ members = ["protonctllib"]
 [workspace.dependencies]
 anyhow = { version = "1.0.75" }
 clap = { version = "4.4.7", features = ["derive"] }
-
+tokio = { version = "1.34.0", features = ["full"] }
+ 
 
 [dependencies]
 anyhow.workspace = true
 clap.workspace = true
+tokio.workspace = true
 protonctllib = { path = "./protonctllib" }
