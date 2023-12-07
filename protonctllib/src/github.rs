@@ -100,8 +100,9 @@ pub mod api {
         Ok(ids)
     }
 
-    pub async fn download_asset(mut url: String,
+    pub async fn download_asset(url: &String,
                                 asset: &AssetId) -> Result<reqwest::Response, reqwest::Error> {
+        let mut url = url.clone();
         url.push_str(format!("/assets/{}", asset.id).as_str());
         reqwest::Client::new()
             .get(url)
@@ -109,65 +110,6 @@ pub mod api {
             .header("Accept", "application/octet-stream")
             .send().await
     }
-
-    /*
-    pub async fn download_assets(
-        mut url: String,
-        asset_ids: [AssetId; 2],
-    ) -> anyhow::Result<[std::path::PathBuf; 2]> {
-        // Start downloading files
-        let mut downloaded_files: [std::path::PathBuf; 2] =
-            [std::path::PathBuf::new(), std::path::PathBuf::new()];
-        // Get progress bar stuff setup
-        let total_size = asset_ids[0].size + asset_ids[1].size;
-
-        let pb = ProgressBar::new(total_size);
-        pb.set_style(ProgressStyle::with_template("{prefix:.bold} {bar:40} {msg:.dim}")
-            .unwrap());
-        pb.set_prefix("Download:");
-        let p_human = HumanBytes(total_size).to_string();
-        let mut bytes_read = 0;
-        for x in 0..asset_ids.len() {
-            let asset = asset_ids[x].clone();
-            let mut asset_url = url.clone();
-            asset_url.push_str(format!("/assets/{}", asset.id).as_str());
-            let mut response = reqwest::Client::new()
-                .get(asset_url)
-                .header("user-agent", "protonctl-rs")
-                .header("Accept", "application/octet-stream")
-                .send()
-                .await
-                .context("Failed to get asset ID")?;
-            if response.status().is_success() {
-                // We got what we wanted. Stream the body to file
-                let mut path = utils::get_download_directory_safe()?;
-                path.push(&asset.name);
-                let mut file_handle = std::fs::OpenOptions::new()
-                    .write(true)
-                    .create(true)
-                    .open(&path)
-                    .context("Failed to open file for writing")?;
-               while let Ok(chunk) = response.chunk().await {
-                   if let Some(bytes) = chunk {
-                       let read = bytes.len() as u64; 
-                       bytes_read += read;
-                       if let Err(_e) = file_handle.write_all(&bytes) {
-                           println!("Failed to write chunk");
-                           return Err(anyhow::anyhow!("Chunk failed to write to file"));
-                       }
-                       pb.inc(read);
-                       pb.set_message(format!("{}/{}", HumanBytes(bytes_read), p_human));
-                   } else {
-                       break;
-                   }
-               }
-               downloaded_files[x] = path;
-           }
-        }
-        pb.finish();
-        Ok(downloaded_files)
-    }
-    */
 }
 
 #[cfg(test)]

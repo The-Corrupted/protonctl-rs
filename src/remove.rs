@@ -1,7 +1,6 @@
 use clap::Args;
-use dirs::home_dir;
 use crate::cmd::InstallTypeCmd;
-use protonctllib::{constants, utils, version_info};
+use protonctllib::{utils, version_info};
 
 #[derive(Args, PartialOrd, Ord, Eq, PartialEq, Debug)]
 pub struct Remove {
@@ -17,13 +16,14 @@ pub struct Remove {
 
 impl Remove {
     pub async fn run(&self) -> anyhow::Result<()> {
-        let mut compat_path = self.install_type.get_compat_directory_safe()?;
         if self.all {
+            let compat_path = self.install_type.get_compat_directory_safe()?;
             utils::remove_all_in(&compat_path)?;
         } else if self.cache {
-            compat_path.push(constants::paths().get(&constants::LockReferences::InstallPath).unwrap());
-            utils::remove_all_in(&compat_path)?;
+            let install_path = utils::get_download_directory_safe()?;
+            utils::remove_all_in(&install_path)?;
         } else {
+            let mut compat_path = self.install_type.get_compat_directory_safe()?;
             let installed_versions = version_info::get_installed_versions(compat_path.clone())?;
             compat_path.push(&self.pw_version);
             if let Some(item) = installed_versions
