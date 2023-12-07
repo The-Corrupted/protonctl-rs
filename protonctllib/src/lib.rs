@@ -1,9 +1,6 @@
-pub mod cmd;
+pub mod utils;
 pub mod constants;
 pub mod decompress;
 pub mod github;
-pub mod install;
-pub mod list;
-pub mod os_helper;
-pub mod remove;
-pub mod colored_out;
+pub mod version_info;
+pub mod install_type;
