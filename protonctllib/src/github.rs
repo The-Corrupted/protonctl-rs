@@ -1,13 +1,9 @@
 // Structs/Helpers for the github releases api
 
 pub mod api {
-    use std::io::Write;
-    use crate::cmd::InstallType;
-    use crate::{constants, os_helper};
     use anyhow::Context;
     use reqwest;
     use serde::Deserialize;
-    use indicatif::{ProgressBar, ProgressStyle, HumanBytes};
 
     #[derive(Deserialize, Debug, Clone, Default)]
     pub struct AssetId {
@@ -28,7 +24,7 @@ pub mod api {
     pub type Releases = Vec<Release>;
 
     pub async fn releases(
-        install_type: InstallType,
+        url: String,
         per_page: Option<u8>,
         page: Option<u8>,
     ) -> anyhow::Result<Releases> {
@@ -36,7 +32,7 @@ pub mod api {
         let p: u8 = page.unwrap_or(1);
 
         let response = reqwest::Client::new()
-            .get(get_url_path(install_type, false))
+            .get(url)
             .query(&[("per_page", pp), ("page", p)])
             .header("user-agent", "protonctl-rs")
             .send()
@@ -48,9 +44,9 @@ pub mod api {
             .context("Failed to deserialize response")
     }
 
-    pub async fn latest_release(install_type: InstallType) -> anyhow::Result<Release> {
+    pub async fn latest_release(url: String) -> anyhow::Result<Release> {
         let response = reqwest::Client::new()
-            .get(get_url_path(install_type, true))
+            .get(url)
             .header("user-agent", "protonctl-rs")
             .send()
             .await
@@ -61,12 +57,11 @@ pub mod api {
             .context("Failed to deserialize response")
     }
 
-    pub async fn release_version(install_type: InstallType, version: String) -> anyhow::Result<Release> {
-        let mut release_url = get_url_path(install_type, false);
-        release_url.push_str("/tags/");
-        release_url.push_str(version.as_str());
+    pub async fn release_version(mut url: String, version: String) -> anyhow::Result<Release> {
+        url.push_str("/tags/");
+        url.push_str(version.as_str());
         let response = reqwest::Client::new()
-            .get(release_url)
+            .get(url)
             .header("user-agent", "protonctl-rs")
             .send()
             .await
@@ -76,19 +71,15 @@ pub mod api {
     }
 
     pub fn get_asset_ids(
-        install_type: InstallType,
+        extension: String,
         release: Release,
     ) -> anyhow::Result<[AssetId; 2]> {
         // Get the release assets and the release tar file
-        let compression_postfix = match install_type {
-            InstallType::Wine => ".tar.xz",
-            InstallType::Proton => ".tar.gz",
-        };
         let sha_postfix = ".sha512sum";
         let mut ids: [AssetId; 2] = [AssetId::default(), AssetId::default()];
         let assets = release.assets;
         for asset in assets {
-            if asset.name.ends_with(compression_postfix) {
+            if asset.name.ends_with(extension.as_str()) {
                 let id = AssetId {
                     name: asset.name,
                     id: asset.id,
@@ -109,8 +100,19 @@ pub mod api {
         Ok(ids)
     }
 
+    pub async fn download_asset(mut url: String,
+                                asset: &AssetId) -> Result<reqwest::Response, reqwest::Error> {
+        url.push_str(format!("/assets/{}", asset.id).as_str());
+        reqwest::Client::new()
+            .get(url)
+            .header("user-agent", "protonctl-rs")
+            .header("Accept", "application/octet-stream")
+            .send().await
+    }
+
+    /*
     pub async fn download_assets(
-        install_type: InstallType,
+        mut url: String,
         asset_ids: [AssetId; 2],
     ) -> anyhow::Result<[std::path::PathBuf; 2]> {
         // Start downloading files
@@ -125,13 +127,12 @@ pub mod api {
         pb.set_prefix("Download:");
         let p_human = HumanBytes(total_size).to_string();
         let mut bytes_read = 0;
-
         for x in 0..asset_ids.len() {
             let asset = asset_ids[x].clone();
-            let mut asset_path = get_url_path(install_type, false);
-            asset_path.push_str(format!("/assets/{}", asset.id).as_str());
+            let mut asset_url = url.clone();
+            asset_url.push_str(format!("/assets/{}", asset.id).as_str());
             let mut response = reqwest::Client::new()
-                .get(asset_path)
+                .get(asset_url)
                 .header("user-agent", "protonctl-rs")
                 .header("Accept", "application/octet-stream")
                 .send()
@@ -139,7 +140,7 @@ pub mod api {
                 .context("Failed to get asset ID")?;
             if response.status().is_success() {
                 // We got what we wanted. Stream the body to file
-                let mut path = os_helper::get_download_directory_safe()?;
+                let mut path = utils::get_download_directory_safe()?;
                 path.push(&asset.name);
                 let mut file_handle = std::fs::OpenOptions::new()
                     .write(true)
@@ -166,58 +167,51 @@ pub mod api {
         pb.finish();
         Ok(downloaded_files)
     }
-
-    // Get the proper url based on the selected install type
-    fn get_url_path(install_type: InstallType, is_latest: bool) -> String {
-        let mut url = if is_latest {
-            constants::LATEST_PATH.to_owned()
-        } else {
-            constants::RELEASES_PATH.to_owned()
-        };
-        url = url.replacen("{}", constants::PROJECT_OWNER, 1);
-        match install_type {
-            InstallType::Proton => url.replacen("{}", constants::PROTON_PROJECT_NAME, 1),
-            InstallType::Wine => url.replacen("{}", constants::WINE_PROJECT_NAME, 1),
-        }
-    }
+    */
 }
 
 #[cfg(test)]
 mod tests {
     #[tokio::test]
     async fn can_get_releases() -> anyhow::Result<()> {
-        use crate::cmd::InstallType;
         use crate::github::api::releases;
-        let result = releases(InstallType::Proton, Some(50), Some(1)).await?;
+        use crate::install_type::InstallType;
+        let install = InstallType::Proton;
+        let result = releases(install.get_url(false), Some(50), Some(1)).await?;
         assert_eq!(result.len(), 50);
         Ok(())
     }
 
     #[tokio::test]
     async fn can_get_latest_release() -> anyhow::Result<()> {
-        use crate::cmd::InstallType;
         use crate::github::api::latest_release;
-        let _result = latest_release(InstallType::Proton).await?;
+        use crate::install_type::InstallType;
+        
+        let install = InstallType::Proton;
+        let _result = latest_release(install.get_url(true)).await?;
         Ok(())
     }
 
     #[tokio::test]
     async fn can_get_release_by_tag() -> anyhow::Result<()> {
-        use crate::cmd::InstallType;
         use crate::github::api::{release_version, Release};
+        use crate::install_type::InstallType;
         let version: String = String::from("GE-Proton8-4");
-        let release: Release = release_version(InstallType::Proton, String::from("GE-Proton8-4")).await?;
+
+        let install = InstallType::Proton;
+        let release: Release = release_version(install.get_extension(), String::from("GE-Proton8-4")).await?;
         assert_eq!(release.tag_name, version);
         Ok(())
     }
 
     #[tokio::test]
     async fn can_get_asset_ids() -> anyhow::Result<()> {
-        use crate::cmd::InstallType;
         use crate::github::api::{get_asset_ids, release_version, Release};
+        use crate::install_type::InstallType;
+        let install = InstallType::Proton;
 
-        let release: Release = release_version(InstallType::Proton, String::from("GE-Proton8-4")).await?;
-        let ids = get_asset_ids(InstallType::Proton, release)?;
+        let release: Release = release_version(install.get_url(false), String::from("GE-Proton8-4")).await?;
+        let ids = get_asset_ids(install.get_url(false), release)?;
         assert_eq!(ids[0].name, String::from("GE-Proton8-4.tar.gz"));
         assert_eq!(ids[1].name, String::from("GE-Proton8-4.sha512sum"));
         Ok(())
