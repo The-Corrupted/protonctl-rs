@@ -20,7 +20,6 @@ pub mod api {
         pub body: String,
     }
 
-
     pub type Releases = Vec<Release>;
 
     pub async fn releases(
