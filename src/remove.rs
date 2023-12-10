@@ -6,12 +6,12 @@ use protonctllib::{utils, version_info};
 pub struct Remove {
     #[arg(value_enum, default_value_t = InstallTypeCmd::Proton, required = false)]
     install_type: InstallTypeCmd,
-    #[arg(required = false, conflicts_with_all(&["all", "pw_version"]), default_value_t = false)]
+    #[arg(short='c', long="cache", required = false, conflicts_with_all = &["all", "pw_version"], default_value_t = false)]
     cache: bool,
-    #[arg(required = false, conflicts_with_all(&["cache", "pw_version"]), default_value_t = false)]
+    #[arg(short='a', long="all", required = false, conflicts_with_all = &["cache", "pw_version"], default_value_t = false)]
     all: bool,
-    #[arg(required_unless_present_any(&["all", "cache"]), conflicts_with_all(&["cache", "all"]))]
-    pub pw_version: std::path::PathBuf,
+    #[arg(required_unless_present_any = &["all", "cache"], conflicts_with_all = &["cache", "all"],)]
+    pub pw_version: Option<std::path::PathBuf>,
 }
 
 impl Remove {
@@ -25,7 +25,7 @@ impl Remove {
         } else {
             let mut compat_path = self.install_type.get_compat_directory_safe()?;
             let installed_versions = version_info::get_installed_versions(&compat_path)?;
-            compat_path.push(&self.pw_version);
+            compat_path.push(&self.pw_version.clone().unwrap());
             if let Some(item) = installed_versions
                 .into_iter()
                 .find(|e| e.path() == compat_path)

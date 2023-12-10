@@ -14,12 +14,10 @@ use protonctllib::{
 use reqwest::Response;
 use std::io::Write;
 
-// We would like install_type to be position AND skippable. You're currently unable to skip it
-// so until I figure out why this is, it's technically mandatory.
 #[derive(Args, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Install {
-    #[arg(value_enum, default_value_t = InstallTypeCmd::Proton, required = false)]
-    install_type: InstallTypeCmd,
+    #[arg(value_enum, required = false)]
+    install_type: Option<InstallTypeCmd>,
     #[arg(required = true)]
     install_version: String,
 }
@@ -61,14 +59,17 @@ impl Install {
         // Get terminal and styles setup
         let mut term = Term::stderr();
         let styles = Styles::new();
+        let install_type = match self.install_type {
+            Some(i) => i,
+            None => InstallTypeCmd::Proton,
+        };
         // Get information we need to start the download ( install path, download path, assetids )
-        let compat_directory: std::path::PathBuf = self
-            .install_type
+        let compat_directory: std::path::PathBuf = install_type
             .get_compat_directory_safe()
             .context("Failed to get compatibility directory")?;
-        let url = self.install_type.get_url(false);
+        let url = install_type.get_url(false);
         let release: Release = release_version(&url, &self.install_version).await?;
-        let (tar_asset, sha_asset) = get_asset_ids(&self.install_type.get_extension(), &release);
+        let (tar_asset, sha_asset) = get_asset_ids(&install_type.get_extension(), &release);
         let mut install_path = utils::get_download_directory_safe()?;
         // Create the clones of everything we need
         // Look into how we can do this without creating so many clones. This uses up a lot of
@@ -121,7 +122,7 @@ impl Install {
             styles.prefix_style.apply_to("Decompressing ... ")
         ))
         .unwrap();
-        match self.install_type {
+        match install_type {
             InstallTypeCmd::Wine => decompress::lzma(&tar_path, &compat_directory)?,
             InstallTypeCmd::Proton => decompress::gunzip(&tar_path, &compat_directory)?,
         }
