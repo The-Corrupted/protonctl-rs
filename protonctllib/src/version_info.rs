@@ -54,8 +54,8 @@ pub fn get_installed_versions(path: &std::path::PathBuf) -> anyhow::Result<Vec<s
 mod tests {
     #[test]
     fn can_get_local_dir() -> anyhow::Result<()> {
-        use crate::version_info::get_installed_versions;
         use crate::install_type::InstallType;
+        use crate::version_info::get_installed_versions;
 
         let install = InstallType::Proton;
         let results = get_installed_versions(&install.get_compat_directory_safe().unwrap())?;

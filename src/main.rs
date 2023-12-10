@@ -1,10 +1,10 @@
-pub mod list;
 pub mod cmd;
 pub mod install;
+pub mod list;
 pub mod remove;
 
-use clap::Parser;
 use crate::cmd::Actions;
+use clap::Parser;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -13,7 +13,7 @@ async fn main() -> anyhow::Result<()> {
         match actions {
             Actions::Install(i) => i.run().await?,
             Actions::List(l) => l.run().await?,
-            Actions::Remove(r) => r.run().await?
+            Actions::Remove(r) => r.run().await?,
         }
     }
     Ok(())

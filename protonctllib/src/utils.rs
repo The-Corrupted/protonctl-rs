@@ -1,18 +1,18 @@
-use crate::constants::install_path;
-use std::io::Read;
-use sha2::{Sha512, Digest};
+use crate::constants;
+use sha2::{Digest, Sha512};
 
 use anyhow::Context;
 use dirs::home_dir;
 
 pub fn get_download_directory_safe() -> anyhow::Result<std::path::PathBuf> {
-    let mut install_dir = home_dir().ok_or(anyhow::anyhow!("Couldn't get users home directory"))?;
-    install_dir.push(install_path());
-    if !install_dir.exists() {
-        std::fs::create_dir_all(&install_dir)?;
-        Ok(install_dir)
+    let mut download_dir =
+        home_dir().ok_or(anyhow::anyhow!("Couldn't get users home directory"))?;
+    download_dir.push(constants::DOWNLOAD_PATH);
+    if !download_dir.exists() {
+        std::fs::create_dir_all(&download_dir)?;
+        Ok(download_dir)
     } else {
-        Ok(install_dir)
+        Ok(download_dir)
     }
 }
 
@@ -54,24 +54,17 @@ pub fn remove_all_in(path: &std::path::PathBuf) -> anyhow::Result<()> {
     Ok(())
 }
 
-pub fn check_sha(tar: &std::path::PathBuf, sha: &std::path::PathBuf) -> anyhow::Result<bool> {
+pub fn check_sha(tar: &std::path::PathBuf, sha: &str) -> anyhow::Result<bool> {
     let mut file = std::fs::OpenOptions::new()
         .read(true)
         .open(tar)
         .context(format!("Failed to open compressed file: {:?}", tar))?;
-    let mut sha_file = std::fs::OpenOptions::new()
-        .read(true)
-        .open(sha)
-        .context(format!("Failed to open sha file: {:?}", sha))?;
     let mut hasher = Sha512::new();
     std::io::copy(&mut file, &mut hasher).context("Failed to copy file contents to hasher")?;
     let final_hash = format!("{:x}", hasher.finalize());
-    let mut expected_hash = String::new();
-    sha_file.read_to_string(&mut expected_hash)
-        .context("Failed to read sha file contents")?;
 
-    match expected_hash.get(0..128) {
+    match sha.get(0..128) {
         Some(u) => Ok(u == final_hash),
-        None => Err(anyhow::anyhow!("Failed to get sha slice"))
+        None => Err(anyhow::anyhow!("Failed to get sha slice")),
     }
 }

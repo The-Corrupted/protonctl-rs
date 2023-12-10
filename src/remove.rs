@@ -1,5 +1,5 @@
-use clap::Args;
 use crate::cmd::InstallTypeCmd;
+use clap::Args;
 use protonctllib::{utils, version_info};
 
 #[derive(Args, PartialOrd, Ord, Eq, PartialEq, Debug)]

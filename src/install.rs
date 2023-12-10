@@ -1,11 +1,18 @@
-use clap::Args;
-use indicatif::{ProgressBar, ProgressStyle};
-use std::{io::Write, sync::{Arc, Mutex}};
-use reqwest::Response;
-use anyhow::Context;
-use console::{Term, Style};
 use crate::cmd::InstallTypeCmd;
-use protonctllib::{utils, decompress, github::api::{release_version, get_asset_ids, download_asset, Release}};
+use anyhow::Context;
+use clap::Args;
+use console::{Style, Term};
+use futures_util::StreamExt;
+use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
+use protonctllib::{
+    decompress,
+    github::api::{
+        download_asset, download_asset_to_memory, get_asset_ids, release_version, Release,
+    },
+    utils,
+};
+use reqwest::Response;
+use std::io::Write;
 
 // We would like install_type to be position AND skippable. You're currently unable to skip it
 // so until I figure out why this is, it's technically mandatory.
@@ -17,37 +24,12 @@ pub struct Install {
     install_version: String,
 }
 
-// Meant to be used in an Arc<Mutex>. Contains the preconfigured progress bar,
-// and the u64 ( which should be the total download size ). This is mostly
-// being used to reduce the number of arguments install_handler takes as
-// well as the amount of manual cloning we do in run
-#[derive(Debug, Clone)]
-pub(crate) struct SharedProgressBar {
-    max: u64,
-    pb: ProgressBar,
-}
-
-impl SharedProgressBar {
-    pub fn new(max: u64) -> anyhow::Result<Self> {
-        let style = ProgressStyle::with_template("{prefix:.bold} {bar} {msg:.dim}")
-            .context("Failed to set style")?;
-        let pb = ProgressBar::new(max);
-        pb.set_style(style);
-        pb.set_prefix("Downloading:");
-        Ok(Self {
-            max,
-            pb
-        })
-    }
-}
-
-
 // Struct containing all the styles we use in the run function.
 // It may be worth allowing the user to customize in the future.
 pub(crate) struct Styles {
     success_style: Style,
     fail_style: Style,
-    prefix_style: Style
+    prefix_style: Style,
 }
 
 impl Styles {
@@ -60,7 +42,7 @@ impl Styles {
     }
 }
 
-/* 
+/*
  * This really needs to be cleaned up/broken apart.
  * Currently it:
  * 1.) Creates the Term struct and styles
@@ -80,112 +62,119 @@ impl Install {
         let mut term = Term::stdout();
         let styles = Styles::new();
         // Get information we need to start the download ( install path, download path, assetids )
-        let compat_directory: std::path::PathBuf = self.install_type.get_compat_directory_safe()
+        let compat_directory: std::path::PathBuf = self
+            .install_type
+            .get_compat_directory_safe()
             .context("Failed to get compatibility directory")?;
         let url = self.install_type.get_url(false);
-        let release: Release = release_version(url.clone(), &self.install_version).await?;
-        let assets = get_asset_ids(&self.install_type.get_extension(), &release)?;
-        let install_path = utils::get_download_directory_safe()?;
+        let release: Release = release_version(&url, &self.install_version).await?;
+        let (tar_asset, sha_asset) = get_asset_ids(&self.install_type.get_extension(), &release);
+        let mut install_path = utils::get_download_directory_safe()?;
         // Create the clones of everything we need
-        let mut install_loc = install_path.clone();
-        let (asset1d, asset1i, asset2d, asset2i) = (assets[0].clone(), assets[0].clone(), assets[1].clone(), assets[1].clone());
-        let (url_clone1, url_clone2) = (url.clone(), url.clone());
-        let d_task1 = tokio::spawn(async move {download_asset(&url_clone1, &asset1d).await});
-        let d_task2 = tokio::spawn(async move {download_asset(&url_clone2, &asset2d).await});
-        let (mut res1, mut res2) = match tokio::join!(d_task1, d_task2) {
-            (Ok(res1), Ok(res2)) => {
-                (res1?, res2?)
-            },
-            _ => {return Err(anyhow::anyhow!("Failed to start downloads"));}
-        };
-
-        let max_size = if let Some(c1) = res1.content_length() {
-            if let Some(c2) = res2.content_length() {
-                c1 + c2
-            } else {
-                c1
+        // Look into how we can do this without creating so many clones. This uses up a lot of
+        // memory and is very slow.
+        let d_url = url.clone();
+        let d_task1 = tokio::spawn(async move {
+            install_path.push(&tar_asset.name);
+            match download_asset(d_url, &tar_asset).await {
+                Ok(res) => handle_install(&install_path, res).await,
+                Err(e) => Err(anyhow::anyhow!(format!(
+                    "Failed to complete download: {}",
+                    e
+                ))),
             }
-        } else {
-            return Err(anyhow::anyhow!("Failed to get content length"));
-        };
-        
-        // Setup progress bar then put it into an Arc so it can be shared by the install tasks
-        let shared_bar = Arc::from(Mutex::from(SharedProgressBar::new(max_size)?));
-        let (shared_bar1, shared_bar2) = (shared_bar.clone(), shared_bar.clone());
-        let task1 = tokio::spawn( async move {
-            install_loc.push(&asset1i.name);
-            handle_install(&install_loc, &mut res1, shared_bar1).await
         });
+        let d_task2 = tokio::spawn(async move { download_asset_to_memory(url, &sha_asset).await });
+        let (res1, res2) = tokio::join!(d_task1, d_task2);
+        let tar_path = res1.context("[TAR] Failed to run task")??;
+        let sha_string = res2.context("[SHA] Failed to run task")??;
 
-        let mut install_loc = install_path.clone(); 
-        let task2 = tokio::spawn( async move {
-            install_loc.push(&asset2i.name);
-            handle_install(&install_loc, &mut res2, shared_bar2).await
-        });
-        
-        let (tar_task_res, sha_task_res) = tokio::join!(task1, task2);
-
-        // Having multiple ?'s isn't ideal but join returns a result and so does handle_install
-        // so we need to unwrap twice to get to the path buffer
-        let tar_path = tar_task_res.context("Failed to run download task for tar")??;
-        let sha_path = sha_task_res.context("Failed to run download task for sha")??;
-
-        // Tasks should be complete at this point and if we've made it this far, there wasn't an
-        // error. Set the progress bar to finish then drop it.
-        shared_bar.lock().unwrap().pb.finish();
-        drop(shared_bar);
-        
         // Check and make sure the file hash matches the SHA512 file. If it doesn't we shouldn't
-        // unpack it. Indicate a failure has occured and 
-        term.write_fmt(format_args!("{}", styles.prefix_style.apply_to("Checking hash ... "))).unwrap();
-        match utils::check_sha(&tar_path, &sha_path) {
+        // unpack it. Indicate a failure has occured and
+        term.write_fmt(format_args!(
+            "{}",
+            styles.prefix_style.apply_to("Checking hash ... ")
+        ))
+        .unwrap();
+        match utils::check_sha(&tar_path, &sha_string) {
             Ok(is_match) => {
                 if is_match {
-                    term.write_fmt(format_args!("{}", styles.success_style.apply_to("Success\n"))).unwrap();
+                    term.write_fmt(format_args!(
+                        "{}",
+                        styles.success_style.apply_to("Success\n")
+                    ))
+                    .unwrap();
                 } else {
-                    term.write_fmt(format_args!("{}", styles.fail_style.apply_to("Fail\n"))).unwrap();
+                    term.write_fmt(format_args!("{}", styles.fail_style.apply_to("Fail\n")))
+                        .unwrap();
                     return Err(anyhow::anyhow!("Hash mismatch error!"));
                 }
             }
-            Err(e) => {return Err(e);}
-        } 
-        
+            Err(e) => {
+                return Err(e);
+            }
+        }
+
         // Decompress the file based on the install_type. We may change this later...
-        term.write_fmt(format_args!("{}", styles.prefix_style.apply_to("Decompressing ... "))).unwrap();
+        term.write_fmt(format_args!(
+            "{}",
+            styles.prefix_style.apply_to("Decompressing ... ")
+        ))
+        .unwrap();
         match self.install_type {
             InstallTypeCmd::Wine => decompress::lzma(&tar_path, &compat_directory)?,
             InstallTypeCmd::Proton => decompress::gunzip(&tar_path, &compat_directory)?,
         }
         // Nothing has failed and we've reached the end. Remove downloaded files and exit
-        term.write_fmt(format_args!("{}", styles.success_style.apply_to("Success\n"))).unwrap();
-        term.write_line(format!("{}", styles.prefix_style.apply_to("Removing artifacts")).as_str()).unwrap();
-        utils::remove_download_pair(&[tar_path, sha_path]);
+        term.write_fmt(format_args!(
+            "{}",
+            styles.success_style.apply_to("Success\n")
+        ))
+        .unwrap();
+        term.write_line(format!("{}", styles.prefix_style.apply_to("Removing artifacts")).as_str())
+            .unwrap();
+        utils::remove_entry(&tar_path)?;
         Ok(())
     }
-
-
 }
-async fn handle_install(path: &std::path::PathBuf, response: &mut Response,
-                        shared_bar: Arc<Mutex<SharedProgressBar>>) -> anyhow::Result<std::path::PathBuf> {
+async fn handle_install(
+    path: &std::path::PathBuf,
+    response: Response,
+) -> anyhow::Result<std::path::PathBuf> {
+    let content_length = if let Some(c) = response.content_length() {
+        c
+    } else {
+        0
+    };
+
+    let pb = ProgressBar::with_draw_target(Some(content_length), ProgressDrawTarget::stderr());
+    pb.set_prefix("Downloading:");
+    pb.set_style(ProgressStyle::with_template(
+        "{prefix:.bold} {bar} {msg:.dim}",
+    )?);
+
     let mut file = std::fs::OpenOptions::new()
         .create(true)
         .write(true)
         .open(path)
         .context(format!("Failed to open file: {:?}", path))?;
     let mut total_install = 0;
-    let max_hr = indicatif::HumanBytes(shared_bar.lock().unwrap().max);
-    while let Ok(r) = response.chunk().await {
-        if let Some(chunk) = r {
-           if file.write_all(&chunk).is_ok() {
-               let chunk_size = chunk.len() as u64;
-               total_install += chunk_size;
-               let sb = shared_bar.lock().unwrap();
-               sb.pb.inc(chunk_size);
-               sb.pb.set_message(format!("{}/{}", indicatif::HumanBytes(total_install), max_hr));
-           }
-        } else {
-            break;
+    let max_hr = indicatif::HumanBytes(content_length);
+    let mut stream = response.bytes_stream();
+    while let Some(r) = stream.next().await {
+        if let Ok(bytes) = r {
+            if file.write_all(&bytes).is_ok() {
+                let chunk_size = bytes.len() as u64;
+                total_install += chunk_size;
+                pb.inc(chunk_size);
+                pb.set_message(format!(
+                    "{}/{}",
+                    indicatif::HumanBytes(total_install),
+                    max_hr
+                ));
+            }
         }
     }
+    pb.finish();
     Ok(path.to_path_buf())
 }
