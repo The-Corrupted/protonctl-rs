@@ -56,9 +56,9 @@ pub mod api {
             .context("Failed to deserialize response")
     }
 
-    pub async fn release_version(mut url: String, version: &String) -> anyhow::Result<Release> {
+    pub async fn release_version(mut url: String, version: &str) -> anyhow::Result<Release> {
         url.push_str("/tags/");
-        url.push_str(version.as_str());
+        url.push_str(version);
         let response = reqwest::Client::new()
             .get(url)
             .header("user-agent", "protonctl-rs")

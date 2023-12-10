@@ -24,7 +24,7 @@ impl Remove {
             utils::remove_all_in(&install_path)?;
         } else {
             let mut compat_path = self.install_type.get_compat_directory_safe()?;
-            let installed_versions = version_info::get_installed_versions(compat_path.clone())?;
+            let installed_versions = version_info::get_installed_versions(&compat_path)?;
             compat_path.push(&self.pw_version);
             if let Some(item) = installed_versions
                 .into_iter()

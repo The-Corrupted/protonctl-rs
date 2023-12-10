@@ -8,21 +8,29 @@ pub enum InstallType {
 }
 
 impl InstallType {
+    // Figure out a better way to do this. We are more or less doing the same thing
+    // 4 times
     pub fn get_url(&self, latest: bool) -> String {
-        let mut url = if latest {
-            constants::LATEST_PATH.to_owned()
-        } else {
-            constants::RELEASES_PATH.to_owned()
-        };
-
+        let mut url: String = String::new();
         match self {
             InstallType::Wine => {
-                url = url.replace("{1}", constants::PROJECT_OWNER);
-                url = url.replace("{2}", constants::WINE_PROJECT_NAME);
+                url = if latest {
+                    format!("https://api.github.com/repos/{}/{}/releases/latest",
+                            constants::PROJECT_OWNER, constants::WINE_PROJECT_NAME)
+                } else {
+
+                    format!("https://api.github.com/repos/{}/{}/releases",
+                              constants::PROJECT_OWNER, constants::WINE_PROJECT_NAME)
+                }
             },
             InstallType::Proton => {
-                url = url.replace("{1}", constants::PROJECT_OWNER);
-                url = url.replace("{2}", constants::PROTON_PROJECT_NAME);
+                url = if latest {
+                    format!("https://api.github.com/repos/{}/{}/releases/latest",
+                           constants::PROJECT_OWNER, constants::PROTON_PROJECT_NAME)
+                } else {
+                    format!("https://api.github.com/repos/{}/{}/releases",
+                            constants::PROJECT_OWNER, constants::PROTON_PROJECT_NAME)
+                }
             }
         }
         url
@@ -39,8 +47,8 @@ impl InstallType {
         let mut compat_dir = home_dir().ok_or(anyhow::anyhow!("Failed to get users home directory"))?;
 
         let compat_path = match self {
-            InstallType::Wine => constants::paths().get(&constants::LockReferences::LutrisRunnersPath).unwrap(),
-            InstallType::Proton => constants::paths().get(&constants::LockReferences::SteamCompatPath).unwrap(),
+            InstallType::Wine => std::path::PathBuf::from(".local/share/lutris/runners/wine"),
+            InstallType::Proton => std::path::PathBuf::from(".local/share/Steam/compatibilitytools.d"),
         };
         compat_dir.push(compat_path);
         if !compat_dir.exists() {

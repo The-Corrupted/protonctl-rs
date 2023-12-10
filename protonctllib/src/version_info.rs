@@ -23,7 +23,7 @@ pub async fn get_releases_paged(
     Some(releases)
 }
 
-pub fn get_installed_versions(path: std::path::PathBuf) -> anyhow::Result<Vec<std::fs::DirEntry>> {
+pub fn get_installed_versions(path: &std::path::PathBuf) -> anyhow::Result<Vec<std::fs::DirEntry>> {
     let mut home: std::path::PathBuf =
         home_dir().ok_or(anyhow::anyhow!("Couldn't get users home directory"))?;
     home.push(path);
@@ -58,7 +58,7 @@ mod tests {
         use crate::install_type::InstallType;
 
         let install = InstallType::Proton;
-        let results = get_installed_versions(install.get_compat_directory_safe().unwrap())?;
+        let results = get_installed_versions(&install.get_compat_directory_safe().unwrap())?;
         if !results.is_empty() {
             Ok(())
         } else {

@@ -24,7 +24,7 @@ impl List {
         if self.local {
             let style = Style::new().green();
             let mut iters = 1;
-            let versions = get_installed_versions(self.install_type.get_compat_directory_safe()
+            let versions = get_installed_versions(&self.install_type.get_compat_directory_safe()
                                                   .context("Failed to get compatibility directory")?)
                 .context("Failed to get directory entries")?;
             for version in versions {

@@ -1,4 +1,4 @@
-use crate::constants::{paths, LockReferences};
+use crate::constants::install_path;
 use std::io::Read;
 use sha2::{Sha512, Digest};
 
@@ -7,7 +7,7 @@ use dirs::home_dir;
 
 pub fn get_download_directory_safe() -> anyhow::Result<std::path::PathBuf> {
     let mut install_dir = home_dir().ok_or(anyhow::anyhow!("Couldn't get users home directory"))?;
-    install_dir.push(paths().get(&LockReferences::InstallPath).unwrap());
+    install_dir.push(install_path());
     if !install_dir.exists() {
         std::fs::create_dir_all(&install_dir)?;
         Ok(install_dir)

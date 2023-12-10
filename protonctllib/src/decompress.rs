@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use tar::Archive;
 use xz2::read::XzDecoder;
 
-pub fn gunzip(compressed: std::path::PathBuf, out: PathBuf) -> Result<()> {
+pub fn gunzip(compressed: &PathBuf, out: &PathBuf) -> Result<()> {
     let file = std::fs::OpenOptions::new()
         .read(true)
         .open(compressed)
@@ -16,7 +16,7 @@ pub fn gunzip(compressed: std::path::PathBuf, out: PathBuf) -> Result<()> {
     Ok(())
 }
 
-pub fn lzma(compressed: std::path::PathBuf, out: PathBuf) -> Result<()> {
+pub fn lzma(compressed: &PathBuf, out: &PathBuf) -> Result<()> {
     let file = std::fs::OpenOptions::new()
         .read(true)
         .open(compressed)

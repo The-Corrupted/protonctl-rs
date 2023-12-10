@@ -153,8 +153,8 @@ impl Install {
         // Decompress the file based on the install_type. We may change this later...
         term.write_fmt(format_args!("{}", styles.prefix_style.apply_to("Decompressing ... "))).unwrap();
         match self.install_type {
-            InstallTypeCmd::Wine => decompress::lzma(tar_path.clone(), compat_directory)?,
-            InstallTypeCmd::Proton => decompress::gunzip(tar_path.clone(), compat_directory)?,
+            InstallTypeCmd::Wine => decompress::lzma(&tar_path, &compat_directory)?,
+            InstallTypeCmd::Proton => decompress::gunzip(&tar_path, &compat_directory)?,
         }
         // Nothing has failed and we've reached the end. Remove downloaded files and exit
         term.write_fmt(format_args!("{}", styles.success_style.apply_to("Success\n"))).unwrap();
