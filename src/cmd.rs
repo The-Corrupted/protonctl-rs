@@ -95,7 +95,10 @@ pub struct ProtonCtl {
 
 #[derive(Subcommand, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub enum Actions {
+    #[command(about = "install version", long_about = "install a remote proton or wine build")]
     Install(Install),
+    #[command(about = "list version", long_about = "list local or remote proton or wine builds")]
     List(List),
+    #[command(about = "remove build(s)", long_about = "remove local proton or wine build(s)")]
     Remove(Remove),
 }

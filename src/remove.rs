@@ -4,13 +4,13 @@ use protonctllib::{utils, version_info};
 
 #[derive(Args, PartialOrd, Ord, Eq, PartialEq, Debug)]
 pub struct Remove {
-    #[arg(value_enum, default_value_t = InstallTypeCmd::Proton, required = false)]
+    #[arg(value_enum, default_value_t = InstallTypeCmd::Proton, required = false, help = "Install type to remove [default: proton]")]
     install_type: InstallTypeCmd,
-    #[arg(short='c', long="cache", required = false, conflicts_with_all = &["all", "pw_version"], default_value_t = false)]
+    #[arg(short='c', long="cache", required = false, conflicts_with_all = &["all", "pw_version"], default_value_t = false, help = "Remove artifacts left behind from failed installs")]
     cache: bool,
-    #[arg(short='a', long="all", required = false, conflicts_with_all = &["cache", "pw_version"], default_value_t = false)]
+    #[arg(short='a', long="all", required = false, conflicts_with_all = &["cache", "pw_version"], default_value_t = false, help = "Remove all local installs")]
     all: bool,
-    #[arg(required_unless_present_any = &["all", "cache"], conflicts_with_all = &["cache", "all"],)]
+    #[arg(required_unless_present_any = &["all", "cache"], conflicts_with_all = &["cache", "all"], help = "Version to remove")]
     pub pw_version: Option<std::path::PathBuf>,
 }
 

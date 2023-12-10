@@ -10,13 +10,13 @@ use std::io::Write;
 
 #[derive(Args, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub struct List {
-    #[arg(value_enum, required = false)]
+    #[arg(value_enum, required = false, help = "Install type to list [default: proton]")]
     install_type: Option<InstallTypeCmd>,
-    #[arg(long = "number", short = 'n', required = false, default_value_t = 10)]
+    #[arg(long = "number", short = 'n', required = false, default_value_t = 10, help = "The number of releases to list")]
     pub number: u8,
-    #[arg(long = "page", short = 'p', required = false, default_value_t = 1)]
+    #[arg(long = "page", short = 'p', required = false, default_value_t = 1, help = "The page to list from")]
     pub page: u8,
-    #[arg(short = 'l', required = false, default_value_t = false)]
+    #[arg(short = 'l', required = false, default_value_t = false, help = "List local installs")]
     pub local: bool,
 }
 
