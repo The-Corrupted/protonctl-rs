@@ -59,7 +59,7 @@ impl Styles {
 impl Install {
     pub async fn run(&self) -> anyhow::Result<()> {
         // Get terminal and styles setup
-        let mut term = Term::stdout();
+        let mut term = Term::stderr();
         let styles = Styles::new();
         // Get information we need to start the download ( install path, download path, assetids )
         let compat_directory: std::path::PathBuf = self
@@ -150,7 +150,7 @@ async fn handle_install(
     let pb = ProgressBar::with_draw_target(Some(content_length), ProgressDrawTarget::stderr());
     pb.set_prefix("Downloading:");
     pb.set_style(ProgressStyle::with_template(
-        "{prefix:.bold} {bar} {msg:.dim}",
+        "{prefix:.bold} {wide_bar} {msg:.dim}",
     )?);
 
     let mut file = std::fs::OpenOptions::new()

@@ -20,12 +20,31 @@ pub struct List {
     pub local: bool,
 }
 
+
+struct Styles {
+    prefix_style: Style,
+    version_style: Style,
+    url_style: Style,
+    change_log_style: Style,
+}
+
+impl Styles {
+    pub fn new() -> Self {
+        Self {
+            prefix_style: Style::new().bold(),
+            version_style: Style::new().green(),
+            url_style: Style::new().blue().underlined(),
+            change_log_style: Style::new().dim()
+        }
+    }
+}
+
 // We need to do output stuff here.
 impl List {
     pub async fn run(&self) -> anyhow::Result<()> {
         let mut term = Term::buffered_stdout();
         if self.local {
-            let style = Style::new().green();
+            let style = Style::new().blue();
             let mut iters = 1;
             let versions = get_installed_versions(
                 &self
@@ -53,8 +72,9 @@ impl List {
         } else if let Some(releases) =
             get_releases_paged(self.install_type.get_url(false), self.number, self.page).await
         {
+            let styles = Styles::new();
             for release in releases {
-                print_release(&mut term, release);
+                print_release(&mut term, &styles, &release);
             }
         } else {
             return Err(anyhow::anyhow!("Failed to get releases"));
@@ -64,16 +84,12 @@ impl List {
     }
 }
 
-fn print_release(term: &Term, release: Release) {
-    let bold = Style::new().bold();
-    let link = Style::new().underlined().blue().bright();
-    let change_log = Style::new().dim();
-    let version = Style::new().italic().green();
+fn print_release(term: &Term, styles: &Styles, release: &Release) {
     term.write_line(
         format!(
             "{}: {}",
-            bold.apply_to("Version"),
-            version.apply_to(release.tag_name)
+            styles.prefix_style.apply_to("Version"),
+            styles.version_style.apply_to(&release.tag_name)
         )
         .as_str(),
     )
@@ -81,12 +97,12 @@ fn print_release(term: &Term, release: Release) {
     term.write_line(
         format!(
             "{}: {}",
-            bold.apply_to("Url"),
-            link.apply_to(release.html_url)
+            styles.prefix_style.apply_to("Url"),
+            styles.url_style.apply_to(&release.html_url)
         )
         .as_str(),
     )
     .unwrap();
-    term.write_line(format!("{}\n", change_log.apply_to(release.body)).as_str())
+    term.write_line(format!("{}\n", styles.change_log_style.apply_to(&release.body)).as_str())
         .unwrap();
 }

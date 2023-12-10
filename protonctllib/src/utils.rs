@@ -16,14 +16,6 @@ pub fn get_download_directory_safe() -> anyhow::Result<std::path::PathBuf> {
     }
 }
 
-pub fn remove_download_pair(downloaded: &[std::path::PathBuf]) {
-    for download in downloaded {
-        if std::fs::remove_file(download).is_err() {
-            eprintln!("Failed to remove file: {:?}", download);
-        }
-    }
-}
-
 pub fn remove_entry(file: &std::path::PathBuf) -> anyhow::Result<()> {
     if file.is_dir() {
         if std::fs::remove_dir_all(file).is_err() {
