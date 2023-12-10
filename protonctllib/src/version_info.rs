@@ -12,7 +12,7 @@ pub async fn get_releases_paged(
         number = MAX_PER_PAGE
     }
 
-    let releases_wrapped = github::api::releases(url, Some(number), Some(page));
+    let releases_wrapped = github::api::releases(&url, Some(number), Some(page));
     let releases = match releases_wrapped.await {
         Ok(e) => e,
         Err(e) => {

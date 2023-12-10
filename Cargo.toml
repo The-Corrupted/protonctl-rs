@@ -23,3 +23,10 @@ clap = { version = "4.4.7", features = ["derive"] }
 indicatif = { version = "0.17.7" }
 console = { version = "0.15.7" }
 protonctllib = { path = "./protonctllib" }
+
+[profile.release]
+opt-level = 3
+codegen-units = 1
+strip = "symbols"
+panic = "abort"
+lto = true

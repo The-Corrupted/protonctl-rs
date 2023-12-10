@@ -23,7 +23,7 @@ pub mod api {
     pub type Releases = Vec<Release>;
 
     pub async fn releases(
-        url: String,
+        url: &String,
         per_page: Option<u8>,
         page: Option<u8>,
     ) -> anyhow::Result<Releases> {
@@ -43,7 +43,7 @@ pub mod api {
             .context("Failed to deserialize response")
     }
 
-    pub async fn latest_release(url: String) -> anyhow::Result<Release> {
+    pub async fn latest_release(url: &String) -> anyhow::Result<Release> {
         let response = reqwest::Client::new()
             .get(url)
             .header("user-agent", "protonctl-rs")
@@ -56,7 +56,7 @@ pub mod api {
             .context("Failed to deserialize response")
     }
 
-    pub async fn release_version(mut url: String, version: String) -> anyhow::Result<Release> {
+    pub async fn release_version(mut url: String, version: &String) -> anyhow::Result<Release> {
         url.push_str("/tags/");
         url.push_str(version.as_str());
         let response = reqwest::Client::new()
@@ -70,17 +70,17 @@ pub mod api {
     }
 
     pub fn get_asset_ids(
-        extension: String,
-        release: Release,
+        extension: &String,
+        release: &Release,
     ) -> anyhow::Result<[AssetId; 2]> {
         // Get the release assets and the release tar file
         let sha_postfix = ".sha512sum";
         let mut ids: [AssetId; 2] = [AssetId::default(), AssetId::default()];
-        let assets = release.assets;
+        let assets = &release.assets;
         for asset in assets {
             if asset.name.ends_with(extension.as_str()) {
                 let id = AssetId {
-                    name: asset.name,
+                    name: asset.name.clone(),
                     id: asset.id,
                     size: asset.size,
                 };
@@ -89,7 +89,7 @@ pub mod api {
             }
             if asset.name.ends_with(sha_postfix) {
                 let id = AssetId {
-                    name: asset.name,
+                    name: asset.name.clone(),
                     id: asset.id,
                     size: asset.size,
                 };
@@ -118,7 +118,7 @@ mod tests {
         use crate::github::api::releases;
         use crate::install_type::InstallType;
         let install = InstallType::Proton;
-        let result = releases(install.get_url(false), Some(50), Some(1)).await?;
+        let result = releases(&install.get_url(false), Some(50), Some(1)).await?;
         assert_eq!(result.len(), 50);
         Ok(())
     }
@@ -129,7 +129,7 @@ mod tests {
         use crate::install_type::InstallType;
         
         let install = InstallType::Proton;
-        let _result = latest_release(install.get_url(true)).await?;
+        let _result = latest_release(&install.get_url(true)).await?;
         Ok(())
     }
 
@@ -140,7 +140,7 @@ mod tests {
         let version: String = String::from("GE-Proton8-4");
 
         let install = InstallType::Proton;
-        let release: Release = release_version(install.get_extension(), String::from("GE-Proton8-4")).await?;
+        let release: Release = release_version(install.get_extension(), &String::from("GE-Proton8-4")).await?;
         assert_eq!(release.tag_name, version);
         Ok(())
     }
@@ -151,8 +151,8 @@ mod tests {
         use crate::install_type::InstallType;
         let install = InstallType::Proton;
 
-        let release: Release = release_version(install.get_url(false), String::from("GE-Proton8-4")).await?;
-        let ids = get_asset_ids(install.get_url(false), release)?;
+        let release: Release = release_version(install.get_url(false), &String::from("GE-Proton8-4")).await?;
+        let ids = get_asset_ids(&install.get_url(false), &release)?;
         assert_eq!(ids[0].name, String::from("GE-Proton8-4.tar.gz"));
         assert_eq!(ids[1].name, String::from("GE-Proton8-4.sha512sum"));
         Ok(())

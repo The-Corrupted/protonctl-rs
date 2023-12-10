@@ -83,8 +83,8 @@ impl Install {
         let compat_directory: std::path::PathBuf = self.install_type.get_compat_directory_safe()
             .context("Failed to get compatibility directory")?;
         let url = self.install_type.get_url(false);
-        let release: Release = release_version(url.clone(), self.install_version.clone()).await?;
-        let assets = get_asset_ids(self.install_type.get_extension(), release)?;
+        let release: Release = release_version(url.clone(), &self.install_version).await?;
+        let assets = get_asset_ids(&self.install_type.get_extension(), &release)?;
         let install_path = utils::get_download_directory_safe()?;
         // Create the clones of everything we need
         let mut install_loc = install_path.clone();
