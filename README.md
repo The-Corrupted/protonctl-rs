@@ -25,7 +25,7 @@ Install wine-ge version:
 ```
 protonctl install GE-Proton8-25 wine
 ```
-### Todo:
+## Todo:
 Code cleanup - The code is still a mess. The run function should be broken down so it's not responsible for doing everything.
 
 Profiling - I've done some basic profiling and while certain things are about as fast and use as much memory as I would expect them to, certain things are still quite slow compared to other, similar managers. Checking the hash takes far longer than I would expect and is worth looking into. Additionally, we sit at around 14-25mb of memory usage whereas other tools like protonup sit at around 8-15mb. I would like to investigate what's eating up so much memory, especially early on.
