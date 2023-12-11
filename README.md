@@ -19,9 +19,9 @@ protonctl list wine
 ```
 Remove local wine-ge install:
 ```
-protonctl remove wine lutris-GE-Proton8-25-x86_64
+protonctl remove lutris-GE-Proton8-25-x86_64 wine
 ```
 Install wine-ge version:
 ```
-protonctl install wine GE-Proton8-25
+protonctl install GE-Proton8-25 wine
 ```
