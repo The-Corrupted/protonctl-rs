@@ -18,7 +18,7 @@ use std::io::Write;
 pub struct Install {
     #[arg(required = true, help = "Release version to install")]
     install_version: String,
-    #[arg(value_enum, required = false, default_value_t = InstallTypeCmd::Proton, help = "Install type to use [default: proton]")]
+    #[arg(value_enum, required = false, default_value_t = InstallTypeCmd::Proton, help = "Install type to use")]
     install_type: InstallTypeCmd,
 
 }

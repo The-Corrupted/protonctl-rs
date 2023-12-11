@@ -10,7 +10,7 @@ pub struct Remove {
     all: bool,
     #[arg(required_unless_present_any = &["all", "cache"], conflicts_with_all = &["cache", "all"], help = "Version to remove")]
     pub pw_version: std::path::PathBuf,
-    #[arg(value_enum, default_value_t = InstallTypeCmd::Proton, required = false, help = "Install type to remove [default: proton]")]
+    #[arg(value_enum, default_value_t = InstallTypeCmd::Proton, required = false, help = "Install type to remove")]
     install_type: InstallTypeCmd,
 }
 

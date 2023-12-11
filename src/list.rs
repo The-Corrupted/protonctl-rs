@@ -10,8 +10,8 @@ use std::io::Write;
 
 #[derive(Args, Ord, PartialOrd, Eq, PartialEq, Debug)]
 pub struct List {
-    #[arg(value_enum, required = false, help = "Install type to list [default: proton]")]
-    install_type: Option<InstallTypeCmd>,
+    #[arg(value_enum, required = false, default_value_t = InstallTypeCmd::Proton, help = "Install type to list")]
+    install_type: InstallTypeCmd,
     #[arg(long = "number", short = 'n', required = false, default_value_t = 10, help = "The number of releases to list")]
     pub number: u8,
     #[arg(long = "page", short = 'p', required = false, default_value_t = 1, help = "The page to list from")]
@@ -43,16 +43,12 @@ impl Styles {
 impl List {
     pub async fn run(&self) -> anyhow::Result<()> {
         let mut term = Term::buffered_stdout();
-        let install_type = match self.install_type {
-            Some(i) => i,
-            None => InstallTypeCmd::Proton,
-        };
 
         if self.local {
             let style = Style::new().blue();
             let mut iters = 1;
             let versions = get_installed_versions(
-                &install_type
+                &self.install_type
                     .get_compat_directory_safe()
                     .context("Failed to get compatibility directory")?,
             )
@@ -74,7 +70,7 @@ impl List {
             }
             term.write_all(b"\n").unwrap();
         } else if let Some(releases) =
-            get_releases_paged(install_type.get_url(false), self.number, self.page).await
+            get_releases_paged(self.install_type.get_url(false), self.number, self.page).await
         {
             let styles = Styles::new();
             for release in releases {
