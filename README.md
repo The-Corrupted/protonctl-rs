@@ -34,8 +34,13 @@ xz2 alternative - It's not clear to me if xz decompressing is slow and memory hu
 
 Autocomplete - Most cli applications have autocomplete. This does not at the moment. It would be great to get this added. It looks like clap_complete might be a good place to start.
 
-Man pages - While this isn't a particularly complicated tool to use, it would be nice to have man pages for it for the users that want or need that.
+Man pages - While this isn't a particularly complicated tool to use, it would be nice to have man pages for the users that want or need that.
 
 Proper output formatting/handling - console does a pretty good job of detecting if we're piping the output or running through a terminal that doesn't support colored output but there are instances where we seem to break things. One such instance is if we try to run install and pipe to a file. stderr is still written to but the formatting is all screwed up. Additionally, the output for list local is quite bad ( only list 3 items per row and the columns aren't aligned ). It would be nice to fix this so it looks a bit more like ls output.
 
+Flatpack support - There is no flatpack support at the moment.
+
+Custom installs - There is no support for custom installs at the moment. Currently only wine-ge-custom and proton-ge-custom are supported.
+
+User configuration - There is no support for user configuration of colors or custom install locations at the moment. Wine and proton builds will be installed into the lutris and proton compatibility/runner directories respectively.
 
