@@ -11,6 +11,12 @@ pub mod api {
         pub size: u64,
     }
 
+    impl AssetId {
+        pub fn is_empty(&self) -> bool {
+            self.name.is_empty()
+        }
+    }
+
     #[derive(Debug, Deserialize, Clone)]
     pub struct Release {
         pub html_url: String,
@@ -62,14 +68,15 @@ pub mod api {
             .await
     }
 
-    pub fn get_asset_ids(extension: &str, release: &Release) -> (AssetId, AssetId) {
+    pub fn get_asset_ids(release: &Release) -> (AssetId, AssetId) {
         // Get the release assets and the release tar file
+        let extensions = [".tar.gz", ".tar.xz"];
         let sha_postfix = ".sha512sum";
         let mut tar_asset: AssetId = AssetId::default();
         let mut sha_asset: AssetId = AssetId::default();
         let assets = &release.assets;
         for asset in assets {
-            if asset.name.ends_with(extension) {
+            if asset.name.ends_with(&extensions[0]) || asset.name.ends_with(&extensions[1]) {
                 let id = AssetId {
                     name: asset.name.clone(),
                     id: asset.id,
@@ -85,6 +92,10 @@ pub mod api {
                     size: asset.size,
                 };
                 sha_asset = id;
+            }
+
+            if !tar_asset.is_empty() && !sha_asset.is_empty() {
+                break;
             }
         }
         (tar_asset, sha_asset)
@@ -149,7 +160,7 @@ mod tests {
 
         let install = InstallType::Proton;
         let release: Release =
-            release_version(&install.get_extension(), &String::from("GE-Proton8-4")).await?;
+            release_version(&install.get_url(false), &String::from("GE-Proton8-4")).await?;
         assert_eq!(release.tag_name, version);
         Ok(())
     }
@@ -162,7 +173,7 @@ mod tests {
 
         let release: Release =
             release_version(&install.get_url(false), &String::from("GE-Proton8-4")).await?;
-        let (tar_asset, sha_asset) = get_asset_ids(&install.get_url(false), &release);
+        let (tar_asset, sha_asset) = get_asset_ids(&release);
         assert_eq!(tar_asset.name, String::from("GE-Proton8-4.tar.gz"));
         assert_eq!(sha_asset.name, String::from("GE-Proton8-4.sha512sum"));
         Ok(())

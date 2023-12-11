@@ -28,6 +28,7 @@ protonctllib = { path = "./protonctllib" }
 [profile.release]
 opt-level = 3
 codegen-units = 1
-strip = "symbols"
+strip = true
 panic = "abort"
+debug = "none"
 lto = true

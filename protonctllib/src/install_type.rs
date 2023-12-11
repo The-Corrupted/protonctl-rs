@@ -1,31 +1,26 @@
-use std::fmt::Display;
-
-use crate::install::Install;
-use crate::list::List;
-use crate::remove::Remove;
-use clap::{Parser, Subcommand, ValueEnum};
+use core::fmt::Display;
 use dirs::home_dir;
-use protonctllib::constants;
+use crate::constants;
 
-#[derive(Eq, PartialEq, Ord, PartialOrd, ValueEnum, Clone, Copy, Debug)]
-pub enum InstallTypeCmd {
+#[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Debug)]
+pub enum InstallType {
     Proton,
     Wine,
 }
 
-impl Display for InstallTypeCmd {
+impl Display for InstallType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            InstallTypeCmd::Wine => write!(f, "wine"),
-            InstallTypeCmd::Proton => write!(f, "proton"),
+            InstallType::Wine => write!(f, "wine"),
+            InstallType::Proton => write!(f, "proton"),
         }
     }
 }
 
-impl InstallTypeCmd {
+impl InstallType {
     pub fn get_url(&self, latest: bool) -> String {
         match self {
-            InstallTypeCmd::Wine => {
+            InstallType::Wine => {
                 if latest {
                     format!(
                         "https://api.github.com/repos/{}/{}/releases/latest",
@@ -40,7 +35,7 @@ impl InstallTypeCmd {
                     )
                 }
             }
-            InstallTypeCmd::Proton => {
+            InstallType::Proton => {
                 if latest {
                     format!(
                         "https://api.github.com/repos/{}/{}/releases/latest",
@@ -63,8 +58,8 @@ impl InstallTypeCmd {
             home_dir().ok_or(anyhow::anyhow!("Failed to get users home directory"))?;
 
         let compat_path = match self {
-            InstallTypeCmd::Wine => std::path::PathBuf::from(".local/share/lutris/runners/wine"),
-            InstallTypeCmd::Proton => {
+            InstallType::Wine => std::path::PathBuf::from(".local/share/lutris/runners/wine"),
+            InstallType::Proton => {
                 std::path::PathBuf::from(".local/share/Steam/compatibilitytools.d")
             }
         };
@@ -76,22 +71,4 @@ impl InstallTypeCmd {
             Ok(compat_dir)
         }
     }
-}
-
-#[derive(Parser, Debug, Eq, PartialEq, Ord, PartialOrd)]
-#[command(author, version, about, long_about = None)]
-#[command(propagate_version = true)]
-pub struct ProtonCtl {
-    #[command(subcommand)]
-    pub actions: Option<Actions>,
-}
-
-#[derive(Subcommand, Debug, Eq, PartialEq, Ord, PartialOrd)]
-pub enum Actions {
-    #[command(about = "install version", long_about = "install a remote proton or wine build")]
-    Install(Install),
-    #[command(about = "list version", long_about = "list local or remote proton or wine builds")]
-    List(List),
-    #[command(about = "remove build(s)", long_about = "remove local proton or wine build(s)")]
-    Remove(Remove),
 }

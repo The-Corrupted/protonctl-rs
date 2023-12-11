@@ -4,7 +4,22 @@ use std::path::PathBuf;
 use tar::Archive;
 use xz2::read::XzDecoder;
 
-pub fn gunzip(compressed: &PathBuf, out: &PathBuf) -> Result<()> {
+pub fn decompress(compressed: &PathBuf, out: &PathBuf) -> Result<()> {
+    let extension = compressed.extension();
+    match extension {
+        Some(e) => {
+            if e == "gz" {gunzip(compressed, out)}
+            else if e == "xz" {lzma(compressed, out)}
+            else { Err(anyhow::anyhow!("Unknown extension: {:?}", extension)) }
+        }
+        None => {
+            Err(anyhow::anyhow!("Failed to get the file extension"))
+        }
+    }
+
+}
+
+fn gunzip(compressed: &PathBuf, out: &PathBuf) -> Result<()> {
     let file = std::fs::OpenOptions::new()
         .read(true)
         .open(compressed)
@@ -16,7 +31,7 @@ pub fn gunzip(compressed: &PathBuf, out: &PathBuf) -> Result<()> {
     Ok(())
 }
 
-pub fn lzma(compressed: &PathBuf, out: &PathBuf) -> Result<()> {
+fn lzma(compressed: &PathBuf, out: &PathBuf) -> Result<()> {
     let file = std::fs::OpenOptions::new()
         .read(true)
         .open(compressed)

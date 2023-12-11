@@ -16,10 +16,11 @@ use std::io::Write;
 
 #[derive(Args, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Install {
-    #[arg(value_enum, required = false, help = "Install type to use [default: proton]")]
-    install_type: Option<InstallTypeCmd>,
     #[arg(required = true, help = "Release version to install")]
     install_version: String,
+    #[arg(value_enum, required = false, default_value_t = InstallTypeCmd::Proton, help = "Install type to use [default: proton]")]
+    install_type: InstallTypeCmd,
+
 }
 
 // Struct containing all the styles we use in the run function.
@@ -59,17 +60,13 @@ impl Install {
         // Get terminal and styles setup
         let mut term = Term::stderr();
         let styles = Styles::new();
-        let install_type = match self.install_type {
-            Some(i) => i,
-            None => InstallTypeCmd::Proton,
-        };
         // Get information we need to start the download ( install path, download path, assetids )
-        let compat_directory: std::path::PathBuf = install_type
+        let compat_directory: std::path::PathBuf = self.install_type
             .get_compat_directory_safe()
             .context("Failed to get compatibility directory")?;
-        let url = install_type.get_url(false);
+        let url = self.install_type.get_url(false);
         let release: Release = release_version(&url, &self.install_version).await?;
-        let (tar_asset, sha_asset) = get_asset_ids(&install_type.get_extension(), &release);
+        let (tar_asset, sha_asset) = get_asset_ids(&release);
         let mut install_path = utils::get_download_directory_safe()?;
         // Create the clones of everything we need
         // Look into how we can do this without creating so many clones. This uses up a lot of
@@ -122,10 +119,9 @@ impl Install {
             styles.prefix_style.apply_to("Decompressing ... ")
         ))
         .unwrap();
-        match install_type {
-            InstallTypeCmd::Wine => decompress::lzma(&tar_path, &compat_directory)?,
-            InstallTypeCmd::Proton => decompress::gunzip(&tar_path, &compat_directory)?,
-        }
+
+        decompress::decompress(&tar_path, &compat_directory)?;
+
         // Nothing has failed and we've reached the end. Remove downloaded files and exit
         term.write_fmt(format_args!(
             "{}",
