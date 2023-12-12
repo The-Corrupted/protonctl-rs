@@ -1,6 +1,6 @@
-use crate::cmd::InstallTypeCmd;
+use crate::cmd::{InstallTypeCmd, Run};
 use anyhow::Context;
-use clap::Args;
+use async_trait::async_trait;
 use console::{Style, Term};
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
@@ -14,13 +14,29 @@ use protonctllib::{
 use reqwest::Response;
 use std::io::Write;
 
-#[derive(Args, Debug, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Default)]
 pub struct Install {
-    #[arg(required = true, help = "Release version to install")]
-    install_version: String,
-    #[arg(value_enum, required = false, default_value_t = InstallTypeCmd::Proton, help = "Install type to use")]
-    install_type: InstallTypeCmd,
+    pub install_version: String,
+    pub install_type: InstallTypeCmd,
+}
 
+impl Install {
+    pub fn new(install_version: String, install_type: InstallTypeCmd) -> Self {
+        Self {
+            install_version,
+            install_type,
+        }
+    }
+
+    pub fn set_install_type(&mut self, itype: InstallTypeCmd) -> &mut Self {
+        self.install_type = itype;
+        self
+    }
+
+    pub fn set_install_version(&mut self, version: String) -> &mut Self {
+        self.install_version = version;
+        self
+    }
 }
 
 // Struct containing all the styles we use in the run function.
@@ -55,40 +71,29 @@ impl Styles {
  * 7.) Remove the download files.
 */
 
-impl Install {
-    pub async fn run(&self) -> anyhow::Result<()> {
+#[async_trait]
+impl Run for Install {
+    async fn run(&self) -> anyhow::Result<()> {
         // Get terminal and styles setup
         let mut term = Term::stderr();
         let styles = Styles::new();
         // Get information we need to start the download ( install path, download path, assetids )
-        let compat_directory: std::path::PathBuf = self.install_type
+        let compat_directory: std::path::PathBuf = self
+            .install_type
             .get_compat_directory_safe()
             .context("Failed to get compatibility directory")?;
         let url = self.install_type.get_url(false);
         let release: Release = release_version(&url, &self.install_version).await?;
         let (tar_asset, sha_asset) = get_asset_ids(&release);
         let mut install_path = utils::get_download_directory_safe()?;
-        // Create the clones of everything we need
-        // Look into how we can do this without creating so many clones. This uses up a lot of
-        // memory and is very slow.
-        let d_url = url.clone();
-        let d_task1 = tokio::spawn(async move {
-            install_path.push(&tar_asset.name);
-            match download_asset(d_url, &tar_asset).await {
-                Ok(res) => handle_install(&install_path, res).await,
-                Err(e) => Err(anyhow::anyhow!(format!(
-                    "Failed to complete download: {}",
-                    e
-                ))),
-            }
-        });
-        let d_task2 = tokio::spawn(async move { download_asset_to_memory(url, &sha_asset).await });
-        let (res1, res2) = tokio::join!(d_task1, d_task2);
-        let tar_path = res1.context("[TAR] Failed to run task")??;
-        let sha_string = res2.context("[SHA] Failed to run task")??;
+        install_path.push(&tar_asset.name);
 
-        // Check and make sure the file hash matches the SHA512 file. If it doesn't we shouldn't
-        // unpack it. Indicate a failure has occured and
+        let tar_path = handle_install(
+            &install_path,
+            download_asset(url.clone(), &tar_asset).await?,
+        )
+        .await?;
+        let sha_string = download_asset_to_memory(url, &sha_asset).await?;
         term.write_fmt(format_args!(
             "{}",
             styles.prefix_style.apply_to("Checking hash ... ")

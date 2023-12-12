@@ -1,6 +1,6 @@
+use crate::constants;
 use core::fmt::Display;
 use dirs::home_dir;
-use crate::constants;
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Debug)]
 pub enum InstallType {

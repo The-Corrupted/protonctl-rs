@@ -1,21 +1,54 @@
-use crate::cmd::InstallTypeCmd;
-use clap::Args;
+use crate::cmd::{InstallTypeCmd, Run};
+use async_trait::async_trait;
 use protonctllib::{utils, version_info};
 
-#[derive(Args, PartialOrd, Ord, Eq, PartialEq, Debug)]
+#[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Default)]
 pub struct Remove {
-    #[arg(short='c', long="cache", required = false, conflicts_with_all = &["all", "pw_version"], default_value_t = false, help = "Remove artifacts left behind from failed installs")]
-    cache: bool,
-    #[arg(short='a', long="all", required = false, conflicts_with_all = &["cache", "pw_version"], default_value_t = false, help = "Remove all local installs")]
-    all: bool,
-    #[arg(required_unless_present_any = &["all", "cache"], conflicts_with_all = &["cache", "all"], help = "Version to remove")]
+    pub cache: bool,
+    pub all: bool,
+    pub install_type: InstallTypeCmd,
     pub pw_version: std::path::PathBuf,
-    #[arg(value_enum, default_value_t = InstallTypeCmd::Proton, required = false, help = "Install type to remove")]
-    install_type: InstallTypeCmd,
 }
 
 impl Remove {
-    pub async fn run(&self) -> anyhow::Result<()> {
+    pub fn new(
+        cache: bool,
+        all: bool,
+        install_type: InstallTypeCmd,
+        pw_version: std::path::PathBuf,
+    ) -> Self {
+        Self {
+            cache,
+            all,
+            install_type,
+            pw_version,
+        }
+    }
+
+    pub fn set_cache(&mut self, cache: bool) -> &mut Self {
+        self.cache = cache;
+        self
+    }
+
+    pub fn set_all(&mut self, all: bool) -> &mut Self {
+        self.all = all;
+        self
+    }
+
+    pub fn set_install_type(&mut self, install_type: InstallTypeCmd) -> &mut Self {
+        self.install_type = install_type;
+        self
+    }
+
+    pub fn set_pw_version(&mut self, pw_version: std::path::PathBuf) -> &mut Self {
+        self.pw_version = pw_version;
+        self
+    }
+}
+
+#[async_trait]
+impl Run for Remove {
+    async fn run(&self) -> anyhow::Result<()> {
         if self.all {
             let compat_path = self.install_type.get_compat_directory_safe()?;
             utils::remove_all_in(&compat_path)?;
@@ -25,7 +58,7 @@ impl Remove {
         } else {
             let mut compat_path = self.install_type.get_compat_directory_safe()?;
             let installed_versions = version_info::get_installed_versions(&compat_path)?;
-            compat_path.push(&self.pw_version.clone());
+            compat_path.push(&self.pw_version);
             if let Some(item) = installed_versions
                 .into_iter()
                 .find(|e| e.path() == compat_path)

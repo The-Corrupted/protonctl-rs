@@ -19,9 +19,10 @@ anyhow.workspace = true
 tokio.workspace = true
 dirs.workspace = true
 reqwest.workspace = true
-clap = { version = "4.4.7", features = ["derive"] }
+clap = { version = "4.4.11" }
 indicatif = { version = "0.17.7" }
 console = { version = "0.15.7" }
+async-trait = { version = "0.1.74" }
 futures-util = { version = "0.3.29" }
 protonctllib = { path = "./protonctllib" }
 

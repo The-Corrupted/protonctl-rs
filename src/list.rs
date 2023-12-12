@@ -1,6 +1,6 @@
-use crate::cmd::InstallTypeCmd;
+use crate::cmd::{InstallTypeCmd, Run};
 use anyhow::Context;
-use clap::Args;
+use async_trait::async_trait;
 use console::{Style, Term};
 use protonctllib::{
     github::api::Release,
@@ -8,18 +8,44 @@ use protonctllib::{
 };
 use std::io::Write;
 
-#[derive(Args, Ord, PartialOrd, Eq, PartialEq, Debug)]
+#[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Default)]
 pub struct List {
-    #[arg(value_enum, required = false, default_value_t = InstallTypeCmd::Proton, help = "Install type to list")]
-    install_type: InstallTypeCmd,
-    #[arg(long = "number", short = 'n', required = false, default_value_t = 10, help = "The number of releases to list")]
     pub number: u8,
-    #[arg(long = "page", short = 'p', required = false, default_value_t = 1, help = "The page to list from")]
     pub page: u8,
-    #[arg(short = 'l', required = false, default_value_t = false, help = "List local installs")]
     pub local: bool,
+    pub install_type: InstallTypeCmd,
 }
 
+impl List {
+    pub fn new(number: u8, page: u8, local: bool, install_type: InstallTypeCmd) -> Self {
+        Self {
+            number,
+            page,
+            local,
+            install_type,
+        }
+    }
+
+    pub fn set_number(&mut self, number: u8) -> &mut Self {
+        self.number = number;
+        self
+    }
+
+    pub fn set_page(&mut self, page: u8) -> &mut Self {
+        self.page = page;
+        self
+    }
+
+    pub fn set_local(&mut self, local: bool) -> &mut Self {
+        self.local = local;
+        self
+    }
+
+    pub fn set_install_type(&mut self, install_type: InstallTypeCmd) -> &mut Self {
+        self.install_type = install_type;
+        self
+    }
+}
 
 struct Styles {
     prefix_style: Style,
@@ -34,21 +60,22 @@ impl Styles {
             prefix_style: Style::new().bold(),
             version_style: Style::new().green(),
             url_style: Style::new().blue().underlined(),
-            change_log_style: Style::new().dim()
+            change_log_style: Style::new().dim(),
         }
     }
 }
 
-// We need to do output stuff here.
-impl List {
-    pub async fn run(&self) -> anyhow::Result<()> {
+#[async_trait]
+impl Run for List {
+    async fn run(&self) -> anyhow::Result<()> {
         let mut term = Term::buffered_stdout();
 
         if self.local {
             let style = Style::new().blue();
             let mut iters = 1;
             let versions = get_installed_versions(
-                &self.install_type
+                &self
+                    .install_type
                     .get_compat_directory_safe()
                     .context("Failed to get compatibility directory")?,
             )
@@ -74,7 +101,7 @@ impl List {
         {
             let styles = Styles::new();
             for release in releases {
-                print_release(&mut term, &styles, &release);
+                print_release(&term, &styles, &release);
             }
         } else {
             return Err(anyhow::anyhow!("Failed to get releases"));
