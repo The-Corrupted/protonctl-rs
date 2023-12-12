@@ -170,6 +170,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "clap_complete"
+version = "4.4.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bffe91f06a11b4b9420f62103854e90867812cd5d01557f853c5ee8e791b12ae"
+dependencies = [
+ "clap",
+]
+
+[[package]]
+name = "clap_complete_nushell"
+version = "4.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "948bf70d7e1f179635d3ef819ce8baa2d3074d0d57816ac37387cd6f9eed0c31"
+dependencies = [
+ "clap",
+ "clap_complete",
+]
+
+[[package]]
 name = "clap_lex"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -808,6 +827,8 @@ dependencies = [
  "anyhow",
  "async-trait",
  "clap",
+ "clap_complete",
+ "clap_complete_nushell",
  "console",
  "dirs",
  "futures-util",
