@@ -23,7 +23,7 @@ protonctl remove -t wine lutris-GE-Proton8-25-x86_64
 ```
 Install wine-ge version:
 ```
-protonctl install -t wine GE-Proton8-25 wine
+protonctl install -t wine GE-Proton8-25
 ```
 ## Todo:
 Code cleanup - The code is still a mess. The run function should be broken up so it's not responsible for doing everything.
