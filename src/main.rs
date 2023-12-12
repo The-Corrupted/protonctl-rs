@@ -1,4 +1,5 @@
 pub mod cmd;
+pub mod cli_completion;
 pub mod install;
 pub mod list;
 pub mod remove;

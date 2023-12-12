@@ -1,3 +1,5 @@
+
+
 [package]
 name = "protonctl-rs"
 version = "0.1.0"
@@ -33,3 +35,8 @@ strip = true
 panic = "abort"
 debug = "none"
 lto = true
+
+[build-dependencies]
+clap_complete_nushell = { version = "4.4.2" }
+clap = { version = "4.4.11" }
+clap_complete = { version = "4.4.4" }
