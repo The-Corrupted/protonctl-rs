@@ -15,15 +15,15 @@ This will compile the project and move the executable into your path.
 ## Usage
 List remote wine-ge releases:
 ```
-protonctl list wine
+protonctl wine list
 ```
 Remove local wine-ge install:
 ```
-protonctl remove lutris-GE-Proton8-25-x86_64 wine
+protonctl wine remove lutris-GE-Proton8-25-x86_64
 ```
 Install wine-ge version:
 ```
-protonctl install GE-Proton8-25 wine
+protonctl wine install GE-Proton8-25
 ```
 ## Todo:
 Code cleanup - The code is still a mess. The run function should be broken up so it's not responsible for doing everything.
