@@ -1,13 +1,13 @@
-pub mod cmd;
-pub mod cli_completion;
+pub mod cli_utils;
+pub mod cli;
 pub mod install;
 pub mod list;
 pub mod remove;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let cmd = cmd::build_cli();
-    let runner = cmd::command_to_struct(&cmd)?;
+    let cmd = cli::build_cli();
+    let runner = cli_utils::command_to_struct(&cmd)?;
     runner.run().await?;
     Ok(())
 }

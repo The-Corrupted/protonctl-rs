@@ -3,7 +3,7 @@ use std::env;
 use clap_complete::generate_to;
 use clap_complete_nushell::Nushell;
 
-include!("src/cli_completion.rs");
+include!("src/cli.rs");
 
 fn main() -> Result<(), Error> {
     let outdir = match env::var_os("OUT_DIR") {

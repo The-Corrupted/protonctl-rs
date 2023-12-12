@@ -1,4 +1,5 @@
-use crate::cmd::{InstallTypeCmd, Run};
+use crate::cli::InstallTypeCmd;
+use crate::cli_utils::Run;
 use async_trait::async_trait;
 use protonctllib::{utils, version_info};
 
