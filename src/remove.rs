@@ -1,6 +1,6 @@
-use protonctllib::{utils, version_info};
-use crate::cmd::{Run, InstallTypeCmd};
+use crate::cmd::{InstallTypeCmd, Run};
 use async_trait::async_trait;
+use protonctllib::{utils, version_info};
 
 #[derive(Debug, Eq, Ord, PartialEq, PartialOrd, Default)]
 pub struct Remove {
@@ -11,12 +11,17 @@ pub struct Remove {
 }
 
 impl Remove {
-    pub fn new(cache: bool, all: bool, install_type: InstallTypeCmd, pw_version: std::path::PathBuf) -> Self {
+    pub fn new(
+        cache: bool,
+        all: bool,
+        install_type: InstallTypeCmd,
+        pw_version: std::path::PathBuf,
+    ) -> Self {
         Self {
             cache,
             all,
             install_type,
-            pw_version
+            pw_version,
         }
     }
 
@@ -39,8 +44,6 @@ impl Remove {
         self.pw_version = pw_version;
         self
     }
-
-
 }
 
 #[async_trait]

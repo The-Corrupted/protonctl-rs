@@ -1,12 +1,9 @@
 use std::fmt::Display;
 
-use crate::install::Install;
-use crate::list::List;
-use crate::remove::Remove;
-use clap::{Command, Arg, ValueEnum, builder::{PossibleValue}, ArgAction, value_parser};
+use async_trait::async_trait;
+use clap::{builder::PossibleValue, value_parser, Arg, ArgAction, Command, ValueEnum};
 use dirs::home_dir;
 use protonctllib::constants;
-use async_trait::async_trait;
 
 #[async_trait]
 pub trait Run {
@@ -41,12 +38,9 @@ impl ValueEnum for InstallTypeCmd {
         match input {
             "wine" => Ok(Self::Wine),
             "proton" => Ok(Self::Proton),
-            _ => Err(format!("Invalid argument: {}", input))
-                
+            _ => Err(format!("Invalid argument: {}", input)),
         }
     }
-
-
 }
 
 impl Display for InstallTypeCmd {
@@ -114,81 +108,79 @@ impl InstallTypeCmd {
     }
 }
 
-pub struct ProtonCtl {
-    pub itype: InstallTypeCmd,
-    pub actions: Option<Actions>,
-}
-
-pub enum Actions {
-    Install(Install),
-    List(List),
-    Remove(Remove),
-}
-
-
 pub async fn build_cli() -> Command {
-    let cmd = Command::new("protonctl")
-        .arg(Arg::new("type")
-             .action(ArgAction::Set)
-             .value_parser(clap::builder::EnumValueParser::<InstallTypeCmd>::new())
-             .default_value("proton")
-             .required(false)
-             .help("The type install type to use")
-             )
+    Command::new("protonctl")
+        .arg(
+            Arg::new("type")
+                .action(ArgAction::Set)
+                .value_parser(clap::builder::EnumValueParser::<InstallTypeCmd>::new())
+                .default_value("proton")
+                .required(false)
+                .help("The type install type to use"),
+        )
         .subcommand_precedence_over_arg(true)
-        .subcommand(Command::new("list")
-                    .arg(Arg::new("number")
-                         .action(ArgAction::Set)
-                         .value_parser(value_parser!(u8))
-                         .default_value("10")
-                         .required(false)
-                         .short('n')
-                         .long("number")
-                         .help("The number of releases to list")
-                         )
-                    .arg(Arg::new("page")
-                         .action(ArgAction::Set)
-                         .value_parser(value_parser!(u8))
-                         .default_value("1")
-                         .short('p')
-                         .long("page")
-                         .conflicts_with("local")
-                         .help("The page number of remote builds to use")
-                         )
-                    .arg(Arg::new("local")
-                         .action(ArgAction::SetTrue)
-                         .default_value("false")
-                         .required(false)
-                         .short('l')
-                         .long("local")
-                         .conflicts_with_all(&["number", "page"])
-                         .help("List local proton or wine installs")))
-        .subcommand(Command::new("remove")
-                    .arg(Arg::new("cache")
-                         .action(ArgAction::SetTrue)
-                         .default_value("false")
-                         .required(false)
-                         .short('c')
-                         .long("cache")
-                         .conflicts_with("all")
-                         .help("Delete artifacts left behind following install failure"))
-                    .arg(Arg::new("all")
-                         .action(ArgAction::SetTrue)
-                         .default_value("false")
-                         .required(false)
-                         .short('a')
-                         .long("all")
-                         .conflicts_with("cache")
-                         .help("Delete all proton or wine installs"))
-                    .arg(Arg::new("install_version")
-                         .action(ArgAction::Set)
-                         .value_parser(value_parser!(String))
-                         .required_unless_present_any(&["cache", "all"])
-                         .help("Install selected version")))
-        .subcommand(Command::new("install")
-                    .arg(Arg::new("install_version")
-                         .required(true)));
-
-    cmd
-
+        .subcommand(
+            Command::new("list")
+                .arg(
+                    Arg::new("number")
+                        .action(ArgAction::Set)
+                        .value_parser(value_parser!(u8))
+                        .default_value("10")
+                        .required(false)
+                        .short('n')
+                        .long("number")
+                        .help("The number of releases to list"),
+                )
+                .arg(
+                    Arg::new("page")
+                        .action(ArgAction::Set)
+                        .value_parser(value_parser!(u8))
+                        .default_value("1")
+                        .short('p')
+                        .long("page")
+                        .conflicts_with("local")
+                        .help("The page number of remote builds to use"),
+                )
+                .arg(
+                    Arg::new("local")
+                        .action(ArgAction::SetTrue)
+                        .default_value("false")
+                        .required(false)
+                        .short('l')
+                        .long("local")
+                        .conflicts_with_all(["number", "page"])
+                        .help("List local proton or wine installs"),
+                ),
+        )
+        .subcommand(
+            Command::new("remove")
+                .arg(
+                    Arg::new("cache")
+                        .action(ArgAction::SetTrue)
+                        .default_value("false")
+                        .required(false)
+                        .short('c')
+                        .long("cache")
+                        .conflicts_with("all")
+                        .help("Delete artifacts left behind following install failure"),
+                )
+                .arg(
+                    Arg::new("all")
+                        .action(ArgAction::SetTrue)
+                        .default_value("false")
+                        .required(false)
+                        .short('a')
+                        .long("all")
+                        .conflicts_with("cache")
+                        .help("Delete all proton or wine installs"),
+                )
+                .arg(
+                    Arg::new("install_version")
+                        .action(ArgAction::Set)
+                        .value_parser(value_parser!(String))
+                        .required_unless_present_any(["cache", "all"])
+                        .help("Install selected version"),
+                ),
+        )
+        .subcommand(Command::new("install").arg(Arg::new("install_version").required(true)))
 }

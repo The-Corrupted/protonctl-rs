@@ -1,5 +1,5 @@
+use crate::cmd::{InstallTypeCmd, Run};
 use anyhow::Context;
-use crate::cmd::{Run, InstallTypeCmd};
 use async_trait::async_trait;
 use console::{Style, Term};
 use protonctllib::{
@@ -47,7 +47,6 @@ impl List {
     }
 }
 
-
 struct Styles {
     prefix_style: Style,
     version_style: Style,
@@ -61,7 +60,7 @@ impl Styles {
             prefix_style: Style::new().bold(),
             version_style: Style::new().green(),
             url_style: Style::new().blue().underlined(),
-            change_log_style: Style::new().dim()
+            change_log_style: Style::new().dim(),
         }
     }
 }
@@ -75,7 +74,8 @@ impl Run for List {
             let style = Style::new().blue();
             let mut iters = 1;
             let versions = get_installed_versions(
-                &self.install_type
+                &self
+                    .install_type
                     .get_compat_directory_safe()
                     .context("Failed to get compatibility directory")?,
             )
@@ -101,7 +101,7 @@ impl Run for List {
         {
             let styles = Styles::new();
             for release in releases {
-                print_release(&mut term, &styles, &release);
+                print_release(&term, &styles, &release);
             }
         } else {
             return Err(anyhow::anyhow!("Failed to get releases"));

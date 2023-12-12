@@ -8,15 +8,16 @@ pub fn decompress(compressed: &PathBuf, out: &PathBuf) -> Result<()> {
     let extension = compressed.extension();
     match extension {
         Some(e) => {
-            if e == "gz" {gunzip(compressed, out)}
-            else if e == "xz" {lzma(compressed, out)}
-            else { Err(anyhow::anyhow!("Unknown extension: {:?}", extension)) }
+            if e == "gz" {
+                gunzip(compressed, out)
+            } else if e == "xz" {
+                lzma(compressed, out)
+            } else {
+                Err(anyhow::anyhow!("Unknown extension: {:?}", extension))
+            }
         }
-        None => {
-            Err(anyhow::anyhow!("Failed to get the file extension"))
-        }
+        None => Err(anyhow::anyhow!("Failed to get the file extension")),
     }
-
 }
 
 fn gunzip(compressed: &PathBuf, out: &PathBuf) -> Result<()> {

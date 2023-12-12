@@ -1,7 +1,8 @@
-use crate::cmd::{Run, InstallTypeCmd};
-use async_trait::async_trait;
+use crate::cmd::{InstallTypeCmd, Run};
 use anyhow::Context;
+use async_trait::async_trait;
 use console::{Style, Term};
+use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use protonctllib::{
     decompress,
@@ -11,14 +12,12 @@ use protonctllib::{
     utils,
 };
 use reqwest::Response;
-use futures_util::StreamExt;
 use std::io::Write;
 
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Default)]
 pub struct Install {
     pub install_version: String,
     pub install_type: InstallTypeCmd,
-
 }
 
 impl Install {
@@ -79,7 +78,8 @@ impl Run for Install {
         let mut term = Term::stderr();
         let styles = Styles::new();
         // Get information we need to start the download ( install path, download path, assetids )
-        let compat_directory: std::path::PathBuf = self.install_type
+        let compat_directory: std::path::PathBuf = self
+            .install_type
             .get_compat_directory_safe()
             .context("Failed to get compatibility directory")?;
         let url = self.install_type.get_url(false);
@@ -88,7 +88,11 @@ impl Run for Install {
         let mut install_path = utils::get_download_directory_safe()?;
         install_path.push(&tar_asset.name);
 
-        let tar_path = handle_install(&install_path, download_asset(url.clone(), &tar_asset).await?).await?;
+        let tar_path = handle_install(
+            &install_path,
+            download_asset(url.clone(), &tar_asset).await?,
+        )
+        .await?;
         let sha_string = download_asset_to_memory(url, &sha_asset).await?;
         term.write_fmt(format_args!(
             "{}",
