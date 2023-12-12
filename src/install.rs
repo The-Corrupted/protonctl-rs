@@ -28,16 +28,6 @@ impl Install {
             install_type,
         }
     }
-
-    pub fn set_install_type(&mut self, itype: InstallTypeCmd) -> &mut Self {
-        self.install_type = itype;
-        self
-    }
-
-    pub fn set_install_version(&mut self, version: String) -> &mut Self {
-        self.install_version = version;
-        self
-    }
 }
 
 // Struct containing all the styles we use in the run function.

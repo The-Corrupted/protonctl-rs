@@ -26,26 +26,6 @@ impl List {
             install_type,
         }
     }
-
-    pub fn set_number(&mut self, number: u8) -> &mut Self {
-        self.number = number;
-        self
-    }
-
-    pub fn set_page(&mut self, page: u8) -> &mut Self {
-        self.page = page;
-        self
-    }
-
-    pub fn set_local(&mut self, local: bool) -> &mut Self {
-        self.local = local;
-        self
-    }
-
-    pub fn set_install_type(&mut self, install_type: InstallTypeCmd) -> &mut Self {
-        self.install_type = install_type;
-        self
-    }
 }
 
 struct Styles {

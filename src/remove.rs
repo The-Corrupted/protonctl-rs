@@ -25,26 +25,6 @@ impl Remove {
             pw_version,
         }
     }
-
-    pub fn set_cache(&mut self, cache: bool) -> &mut Self {
-        self.cache = cache;
-        self
-    }
-
-    pub fn set_all(&mut self, all: bool) -> &mut Self {
-        self.all = all;
-        self
-    }
-
-    pub fn set_install_type(&mut self, install_type: InstallTypeCmd) -> &mut Self {
-        self.install_type = install_type;
-        self
-    }
-
-    pub fn set_pw_version(&mut self, pw_version: std::path::PathBuf) -> &mut Self {
-        self.pw_version = pw_version;
-        self
-    }
 }
 
 #[async_trait]
