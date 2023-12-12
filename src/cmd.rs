@@ -1,5 +1,5 @@
 use std::fmt::Display;
-
+use crate::{install, remove, list};
 use async_trait::async_trait;
 use clap::{builder::PossibleValue, value_parser, Arg, ArgAction, Command, ValueEnum};
 use dirs::home_dir;
@@ -108,7 +108,7 @@ impl InstallTypeCmd {
     }
 }
 
-pub async fn build_cli() -> Command {
+pub fn build_cli() -> Command {
     Command::new("protonctl")
         .arg(
             Arg::new("type")
@@ -183,4 +183,41 @@ pub async fn build_cli() -> Command {
                 ),
         )
         .subcommand(Command::new("install").arg(Arg::new("install_version").required(true)))
+}
+
+pub fn command_to_struct(cmd: &Command) -> anyhow::Result<Box<dyn Run>> {
+    let mut matches = cmd.clone().get_matches();
+    let itype: InstallTypeCmd = matches.remove_one::<InstallTypeCmd>("type").unwrap();
+
+    match matches.subcommand() {
+        Some(("install", sub_i)) => {
+            Ok(Box::new(install::Install::new(
+                sub_i.get_one::<String>("install_version").unwrap().clone(),
+                itype,
+            )))
+        }
+        Some(("list", sub_l)) => {
+            Ok(Box::new(list::List::new(
+                *sub_l.get_one::<u8>("number").unwrap(),
+                *sub_l.get_one::<u8>("page").unwrap(),
+                *sub_l.get_one::<bool>("local").unwrap(),
+                itype,
+            )))
+        }
+        Some(("remove", sub_r)) => {
+            let pw_version = if let Some(v) = sub_r.get_one::<std::path::PathBuf>("pw_version") {
+                v.clone()
+            } else {
+                std::path::PathBuf::new()
+            };
+
+            Ok(Box::new(remove::Remove::new(
+                *sub_r.get_one::<bool>("cache").unwrap(),
+                *sub_r.get_one::<bool>("all").unwrap(),
+                itype,
+                pw_version,
+            )))
+        }
+        _ => { return Err(anyhow::anyhow!("It shouldn't be possible to hit this")); }
+    }
 }
