@@ -53,7 +53,7 @@ impl Run for List {
 
         if self.local {
             let style = Style::new().blue();
-            let mut iters = 1;
+            let style_header = Style::new().bold().underlined();
             let versions = get_installed_versions(
                 &self
                     .install_type
@@ -61,22 +61,18 @@ impl Run for List {
                     .context("Failed to get compatibility directory")?,
             )
             .context("Failed to get directory entries")?;
+            let header_str = style_header.apply_to(format!("{} installs:", &self.install_type)).to_string();
+            term.write_line(&header_str).unwrap();
             for version in versions {
                 let version = version.file_name();
                 if let Some(name) = version.to_str() {
-                    let mut name = name.to_string();
-                    name.push_str("   ");
-                    term.write_fmt(format_args!("{}", style.apply_to(name)))
+                    let name = name.to_string();
+                    term.write_fmt(format_args!("{}\n", style.apply_to(name)))
                         .unwrap();
-                    if iters % 3 == 0 {
-                        term.write_all(b"\n").unwrap();
-                    }
                 } else {
                     eprintln!("Failed to convert file_name to string");
                 }
-                iters += 1;
             }
-            term.write_all(b"\n").unwrap();
         } else if let Some(releases) =
             get_releases_paged(self.install_type.get_url(false), self.number, self.page).await
         {
