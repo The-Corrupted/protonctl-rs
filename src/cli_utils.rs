@@ -98,7 +98,7 @@ pub fn command_to_struct(cmd: &Command) -> anyhow::Result<Box<dyn Run>> {
             let install_version = if let Some(v) = sub_r.get_one::<String>("install_version") {
                 v.clone()
             } else {
-                if all || cache {
+                if !all && !cache {
                     return Err(anyhow::anyhow!("No install_version specified"))
                 }
                 String::new()
