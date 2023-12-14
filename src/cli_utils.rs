@@ -93,17 +93,22 @@ pub fn command_to_struct(cmd: &Command) -> anyhow::Result<Box<dyn Run>> {
             )))
         }
         Some(("remove", sub_r)) => {
-            let pw_version = if let Some(v) = sub_r.get_one::<std::path::PathBuf>("pw_version") {
+            let cache = *sub_r.get_one::<bool>("cache").unwrap();
+            let all = *sub_r.get_one::<bool>("all").unwrap();
+            let install_version = if let Some(v) = sub_r.get_one::<String>("install_version") {
                 v.clone()
             } else {
-                std::path::PathBuf::new()
+                if all || cache {
+                    return Err(anyhow::anyhow!("No install_version specified"))
+                }
+                String::new()
             };
 
             Ok(Box::new(remove::Remove::new(
-                *sub_r.get_one::<bool>("cache").unwrap(),
-                *sub_r.get_one::<bool>("all").unwrap(),
+                cache,
+                all,
                 *sub_r.get_one::<InstallTypeCmd>("type").unwrap(),
-                pw_version,
+                install_version
             )))
         }
         _ => { return Err(anyhow::anyhow!("It shouldn't be possible to hit this")); }

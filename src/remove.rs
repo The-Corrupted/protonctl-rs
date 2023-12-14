@@ -8,7 +8,7 @@ pub struct Remove {
     pub cache: bool,
     pub all: bool,
     pub install_type: InstallTypeCmd,
-    pub pw_version: std::path::PathBuf,
+    pub pw_version: String,
 }
 
 impl Remove {
@@ -16,7 +16,7 @@ impl Remove {
         cache: bool,
         all: bool,
         install_type: InstallTypeCmd,
-        pw_version: std::path::PathBuf,
+        pw_version: String,
     ) -> Self {
         Self {
             cache,
