@@ -1,4 +1,4 @@
-use clap::{Command, Arg, ArgAction, ValueEnum, builder::PossibleValue, value_parser};
+use clap::{builder::PossibleValue, value_parser, Arg, ArgAction, Command, ValueEnum};
 
 #[derive(Eq, PartialEq, Ord, PartialOrd, Clone, Copy, Debug)]
 pub enum InstallTypeCmd {
@@ -124,8 +124,7 @@ pub fn build_cli() -> Command {
         )
         .subcommand(
             Command::new("install")
-                .arg(Arg::new("install_version")
-                    .required(true))
+                .arg(Arg::new("install_version").required(true))
                 .arg(
                     Arg::new("type")
                         .short('t')
@@ -136,6 +135,6 @@ pub fn build_cli() -> Command {
                         .global(true)
                         .required(false)
                         .help("The type install type to use"),
-                )
+                ),
         )
 }

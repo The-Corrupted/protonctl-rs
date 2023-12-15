@@ -49,41 +49,56 @@ impl Styles {
 #[async_trait]
 impl Run for List {
     async fn run(&self) -> anyhow::Result<()> {
-        let mut term = Term::buffered_stdout();
-
+        let mut term = Term::buffered_stdout(); 
         if self.local {
-            let style = Style::new().blue();
-            let style_header = Style::new().bold().underlined();
-            let versions = get_installed_versions(
-                &self
-                    .install_type
-                    .get_compat_directory_safe()
-                    .context("Failed to get compatibility directory")?,
-            )
-            .context("Failed to get directory entries")?;
-            let header_str = style_header.apply_to(format!("{} installs:", &self.install_type)).to_string();
-            term.write_line(&header_str).unwrap();
-            for version in versions {
-                let version = version.file_name();
-                if let Some(name) = version.to_str() {
-                    let name = name.to_string();
-                    term.write_fmt(format_args!("{}\n", style.apply_to(name)))
-                        .unwrap();
-                } else {
-                    eprintln!("Failed to convert file_name to string");
-                }
+            self.list_local(&mut term)?;
+        } else {
+            self.list_remote(&mut term).await?;
+        }
+        term.flush().unwrap();
+        Ok(())
+    }
+}
+
+impl List {
+    fn list_local(&self, term: &mut Term) -> anyhow::Result<()> {
+        let directory_style = Style::new().blue();
+        let style_header = Style::new().bold().underlined();
+        let versions = get_installed_versions(
+            &self
+                .install_type
+                .get_compat_directory_safe()
+                .context("Failed to get compatibility directory")?,
+        )
+        .context("Failed to get directory entries")?;
+        let header_str = style_header
+            .apply_to(format!("{} installs:", &self.install_type))
+            .to_string();
+        term.write_line(&header_str).unwrap();
+        for version in versions {
+            let version = version.file_name();
+            if let Some(name) = version.to_str() {
+                let name = name.to_string();
+                term.write_fmt(format_args!("{}\n", directory_style.apply_to(name)))
+                    .unwrap();
+            } else {
+                eprintln!("Failed to convert file_name to string");
             }
-        } else if let Some(releases) =
+        }
+        Ok(())
+    }
+
+    async fn list_remote(&self, term: &mut Term) -> anyhow::Result<()> {
+        if let Some(releases) =
             get_releases_paged(self.install_type.get_url(false), self.number, self.page).await
         {
             let styles = Styles::new();
             for release in releases {
-                print_release(&term, &styles, &release);
+                print_release(term, &styles, &release);
             }
         } else {
             return Err(anyhow::anyhow!("Failed to get releases"));
         }
-        term.flush().unwrap();
         Ok(())
     }
 }

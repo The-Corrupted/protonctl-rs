@@ -1,9 +1,9 @@
-use std::fmt::Display;
-use crate::{install, remove, list, cli::InstallTypeCmd};
+use crate::{cli::InstallTypeCmd, install, list, remove};
 use async_trait::async_trait;
 use clap::Command;
 use dirs::home_dir;
 use protonctllib::constants;
+use std::fmt::Display;
 
 #[async_trait]
 pub trait Run {
@@ -78,20 +78,16 @@ impl InstallTypeCmd {
 pub fn command_to_struct(cmd: &Command) -> anyhow::Result<Box<dyn Run>> {
     let matches = cmd.clone().get_matches();
     match matches.subcommand() {
-        Some(("install", sub_i)) => {
-            Ok(Box::new(install::Install::new(
-                sub_i.get_one::<String>("install_version").unwrap().clone(),
-                *sub_i.get_one::<InstallTypeCmd>("type").unwrap(),
-            )))
-        }
-        Some(("list", sub_l)) => {
-            Ok(Box::new(list::List::new(
-                *sub_l.get_one::<u8>("number").unwrap(),
-                *sub_l.get_one::<u8>("page").unwrap(),
-                *sub_l.get_one::<bool>("local").unwrap(),
-                *sub_l.get_one::<InstallTypeCmd>("type").unwrap(),
-            )))
-        }
+        Some(("install", sub_i)) => Ok(Box::new(install::Install::new(
+            sub_i.get_one::<String>("install_version").unwrap().clone(),
+            *sub_i.get_one::<InstallTypeCmd>("type").unwrap(),
+        ))),
+        Some(("list", sub_l)) => Ok(Box::new(list::List::new(
+            *sub_l.get_one::<u8>("number").unwrap(),
+            *sub_l.get_one::<u8>("page").unwrap(),
+            *sub_l.get_one::<bool>("local").unwrap(),
+            *sub_l.get_one::<InstallTypeCmd>("type").unwrap(),
+        ))),
         Some(("remove", sub_r)) => {
             let cache = *sub_r.get_one::<bool>("cache").unwrap();
             let all = *sub_r.get_one::<bool>("all").unwrap();
@@ -99,7 +95,7 @@ pub fn command_to_struct(cmd: &Command) -> anyhow::Result<Box<dyn Run>> {
                 v.clone()
             } else {
                 if !all && !cache {
-                    return Err(anyhow::anyhow!("No install_version specified"))
+                    return Err(anyhow::anyhow!("No install_version specified"));
                 }
                 String::new()
             };
@@ -108,9 +104,11 @@ pub fn command_to_struct(cmd: &Command) -> anyhow::Result<Box<dyn Run>> {
                 cache,
                 all,
                 *sub_r.get_one::<InstallTypeCmd>("type").unwrap(),
-                install_version
+                install_version,
             )))
         }
-        _ => { return Err(anyhow::anyhow!("It shouldn't be possible to hit this")); }
+        _ => {
+            Err(anyhow::anyhow!("It shouldn't be possible to hit this"))
+        }
     }
 }

@@ -1,5 +1,5 @@
-pub mod cli_utils;
 pub mod cli;
+pub mod cli_utils;
 pub mod install;
 pub mod list;
 pub mod remove;
