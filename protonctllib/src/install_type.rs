@@ -6,6 +6,7 @@ use dirs::home_dir;
 pub enum InstallType {
     Proton,
     Wine,
+    ULWGL,
 }
 
 impl Display for InstallType {
@@ -13,6 +14,7 @@ impl Display for InstallType {
         match self {
             InstallType::Wine => write!(f, "wine"),
             InstallType::Proton => write!(f, "proton"),
+            InstallType::ULWGL => write!(f, "ulwgl"),
         }
     }
 }
@@ -24,28 +26,42 @@ impl InstallType {
                 if latest {
                     format!(
                         "https://api.github.com/repos/{}/{}/releases/latest",
-                        constants::PROJECT_OWNER,
+                        constants::GE_PROJECT_OWNER,
                         constants::WINE_PROJECT_NAME
                     )
                 } else {
                     format!(
                         "https://api.github.com/repos/{}/{}/releases",
-                        constants::PROJECT_OWNER,
+                        constants::GE_PROJECT_OWNER,
                         constants::WINE_PROJECT_NAME
                     )
                 }
             }
+            InstallType::ULWGL => {
+                if latest {
+                    format!("https://api.github.com/repos/{}/{}/releases/latest",
+                            constants::ULWGL_PROJECT_OWNER,
+                            constants::ULWGL_PROJECT_NAME
+                            )
+                } else {
+                    format!(
+                        "https://api.github.com/repos/{}/{}/releases",
+                        constants::ULWGL_PROJECT_OWNER,
+                        constants::ULWGL_PROJECT_NAME
+                    )
+                }
+            },
             InstallType::Proton => {
                 if latest {
                     format!(
                         "https://api.github.com/repos/{}/{}/releases/latest",
-                        constants::PROJECT_OWNER,
+                        constants::GE_PROJECT_OWNER,
                         constants::PROTON_PROJECT_NAME
                     )
                 } else {
                     format!(
                         "https://api.github.com/repos/{}/{}/releases",
-                        constants::PROJECT_OWNER,
+                        constants::GE_PROJECT_OWNER,
                         constants::PROTON_PROJECT_NAME
                     )
                 }
@@ -61,6 +77,9 @@ impl InstallType {
             InstallType::Wine => std::path::PathBuf::from(".local/share/lutris/runners/wine"),
             InstallType::Proton => {
                 std::path::PathBuf::from(".local/share/Steam/compatibilitytools.d")
+            }
+            InstallType::ULWGL => {
+                std::path::PathBuf::from(".local/share/ULWGL-Proton")
             }
         };
         compat_dir.push(compat_path);

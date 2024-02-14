@@ -4,6 +4,7 @@ use clap::{builder::PossibleValue, value_parser, Arg, ArgAction, Command, ValueE
 pub enum InstallTypeCmd {
     Proton,
     Wine,
+    ULWGL,
 }
 
 impl Default for InstallTypeCmd {
@@ -14,13 +15,14 @@ impl Default for InstallTypeCmd {
 
 impl ValueEnum for InstallTypeCmd {
     fn value_variants<'a>() -> &'a [Self] {
-        &[Self::Proton, Self::Wine]
+        &[Self::Proton, Self::Wine, Self::ULWGL]
     }
 
     fn to_possible_value(&self) -> Option<PossibleValue> {
         match self {
             InstallTypeCmd::Wine => Some(PossibleValue::new("wine")),
             InstallTypeCmd::Proton => Some(PossibleValue::new("proton")),
+            InstallTypeCmd::ULWGL => Some(PossibleValue::new("ulwgl")),
         }
     }
 
@@ -28,6 +30,7 @@ impl ValueEnum for InstallTypeCmd {
         match input {
             "wine" => Ok(Self::Wine),
             "proton" => Ok(Self::Proton),
+            "ulwgl" => Ok(Self::ULWGL),
             _ => Err(format!("Invalid argument: {}", input)),
         }
     }

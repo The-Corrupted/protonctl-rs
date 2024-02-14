@@ -15,6 +15,7 @@ impl Display for InstallTypeCmd {
         match self {
             InstallTypeCmd::Wine => write!(f, "wine"),
             InstallTypeCmd::Proton => write!(f, "proton"),
+            InstallTypeCmd::ULWGL => write!(f, "ulwgl"),
         }
     }
 }
@@ -26,13 +27,13 @@ impl InstallTypeCmd {
                 if latest {
                     format!(
                         "https://api.github.com/repos/{}/{}/releases/latest",
-                        constants::PROJECT_OWNER,
+                        constants::GE_PROJECT_OWNER,
                         constants::WINE_PROJECT_NAME
                     )
                 } else {
                     format!(
                         "https://api.github.com/repos/{}/{}/releases",
-                        constants::PROJECT_OWNER,
+                        constants::GE_PROJECT_OWNER,
                         constants::WINE_PROJECT_NAME
                     )
                 }
@@ -41,14 +42,29 @@ impl InstallTypeCmd {
                 if latest {
                     format!(
                         "https://api.github.com/repos/{}/{}/releases/latest",
-                        constants::PROJECT_OWNER,
+                        constants::GE_PROJECT_OWNER,
                         constants::PROTON_PROJECT_NAME
                     )
                 } else {
                     format!(
                         "https://api.github.com/repos/{}/{}/releases",
-                        constants::PROJECT_OWNER,
+                        constants::GE_PROJECT_OWNER,
                         constants::PROTON_PROJECT_NAME
+                    )
+                }
+            }
+            InstallTypeCmd::ULWGL => {
+                if latest {
+                    format!(
+                        "https://api.github.com/repos/{}/{}/releases/latest",
+                        constants::ULWGL_PROJECT_OWNER,
+                        constants::ULWGL_PROJECT_NAME
+                    )
+                } else {
+                    format!(
+                        "https://api.github.com/repos/{}/{}/releases",
+                        constants::ULWGL_PROJECT_OWNER,
+                        constants::ULWGL_PROJECT_NAME
                     )
                 }
             }
@@ -63,6 +79,9 @@ impl InstallTypeCmd {
             InstallTypeCmd::Wine => std::path::PathBuf::from(".local/share/lutris/runners/wine"),
             InstallTypeCmd::Proton => {
                 std::path::PathBuf::from(".local/share/Steam/compatibilitytools.d")
+            },
+            InstallTypeCmd::ULWGL => {
+                std::path::PathBuf::from(".local/share/ULWGL-Proton/")
             }
         };
         compat_dir.push(compat_path);
