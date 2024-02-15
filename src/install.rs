@@ -48,20 +48,6 @@ impl Styles {
     }
 }
 
-/*
- * This really needs to be cleaned up/broken apart.
- * Currently it:
- * 1.) Creates the Term struct and styles
- * 2.) Spawns and joins the download task, handling errors
- * 3.) Creates the progress bar using the Response from the
- * download task.
- * 4.) Creates a new set of tasks to run the download, cloning
- * almost everything.
- * 5.) Checks the sha hash returning an error if it doesn't match
- * 6.) Decompress the tar file, returning an error if it fails.
- * 7.) Remove the download files.
-*/
-
 #[async_trait]
 impl Run for Install {
     async fn run(&self) -> anyhow::Result<()> {

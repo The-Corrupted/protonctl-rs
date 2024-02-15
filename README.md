@@ -28,7 +28,7 @@ protonctl install -t wine GE-Proton8-25
 ## Todo:
 Man pages - While this isn't a particularly complicated tool to use, it would be nice to have man pages for the users that want or need that.
 
-Proper output formatting/handling - console does a pretty good job of detecting if we're piping the output or running through a terminal that doesn't support colored output but there are instances where we seem to break things. One such instance is if we try to run install and pipe to a file. stderr is still written to but the formatting is all screwed up. Additionally, the output for list local is quite bad ( only list 3 items per row and the columns aren't aligned ). It would be nice to fix this so it looks a bit more like ls output.
+Proper output formatting/handling - console does a pretty good job of detecting if we're piping the output or running through a terminal that doesn't support colored output but there are instances where we seem to break things. One such instance is if we try to run install and pipe to a file. stderr is still written but we end up with the progress bar ending up in the file as a string of escape codes
 
 Flatpack support - There is no flatpack support at the moment.
 
