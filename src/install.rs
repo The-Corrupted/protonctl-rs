@@ -18,13 +18,15 @@ use std::io::Write;
 #[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Default)]
 pub struct Install {
     pub install_version: String,
+    pub flatpak: bool,
     pub install_type: InstallTypeCmd,
 }
 
 impl Install {
-    pub fn new(install_version: String, install_type: InstallTypeCmd) -> Self {
+    pub fn new(install_version: String, flatpak: bool, install_type: InstallTypeCmd) -> Self {
         Self {
             install_version,
+            flatpak,
             install_type,
         }
     }
@@ -57,7 +59,7 @@ impl Run for Install {
         // Get information we need to start the download ( install path, download path, assetids )
         let compat_directory: std::path::PathBuf = self
             .install_type
-            .get_compat_directory_safe()
+            .get_compat_directory_safe(self.flatpak)
             .context("Failed to get compatibility directory")?;
         let url = self.install_type.get_url(false);
         let release: Release = release_version(&url, &self.install_version).await?;
