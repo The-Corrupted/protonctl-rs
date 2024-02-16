@@ -71,7 +71,10 @@ impl InstallTypeCmd {
         }
     }
 
-    pub fn get_compat_directory_safe(&self, is_flatpak: bool) -> anyhow::Result<std::path::PathBuf> {
+    pub fn get_compat_directory_safe(
+        &self,
+        is_flatpak: bool,
+    ) -> anyhow::Result<std::path::PathBuf> {
         let mut compat_dir =
             home_dir().ok_or(anyhow::anyhow!("Failed to get users home directory"))?;
         let compat_path = match self {
@@ -84,14 +87,14 @@ impl InstallTypeCmd {
             }
             InstallTypeCmd::Proton => {
                 if is_flatpak {
-                    std::path::PathBuf::from(".var/app/com.valvesoftware.Steam/.local/share/Steam/compatibilitytools.d")
+                    std::path::PathBuf::from(
+                        ".var/app/com.valvesoftware.Steam/.local/share/Steam/compatibilitytools.d",
+                    )
                 } else {
                     std::path::PathBuf::from(".local/share/Steam/compatibilitytools.d")
                 }
-            },
-            InstallTypeCmd::ULWGL => {
-                std::path::PathBuf::from(".local/share/ULWGL-Proton/")
             }
+            InstallTypeCmd::ULWGL => std::path::PathBuf::from(".local/share/ULWGL-Proton/"),
         };
         compat_dir.push(compat_path);
         if !compat_dir.exists() {
@@ -141,8 +144,6 @@ pub fn command_to_struct(cmd: &Command) -> anyhow::Result<Box<dyn Run>> {
                 install_version,
             )))
         }
-        _ => {
-            Err(anyhow::anyhow!("It shouldn't be possible to hit this"))
-        }
+        _ => Err(anyhow::anyhow!("It shouldn't be possible to hit this")),
     }
 }

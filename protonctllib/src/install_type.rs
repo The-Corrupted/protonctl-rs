@@ -39,10 +39,11 @@ impl InstallType {
             }
             InstallType::ULWGL => {
                 if latest {
-                    format!("https://api.github.com/repos/{}/{}/releases/latest",
-                            constants::ULWGL_PROJECT_OWNER,
-                            constants::ULWGL_PROJECT_NAME
-                            )
+                    format!(
+                        "https://api.github.com/repos/{}/{}/releases/latest",
+                        constants::ULWGL_PROJECT_OWNER,
+                        constants::ULWGL_PROJECT_NAME
+                    )
                 } else {
                     format!(
                         "https://api.github.com/repos/{}/{}/releases",
@@ -50,7 +51,7 @@ impl InstallType {
                         constants::ULWGL_PROJECT_NAME
                     )
                 }
-            },
+            }
             InstallType::Proton => {
                 if latest {
                     format!(
@@ -78,9 +79,7 @@ impl InstallType {
             InstallType::Proton => {
                 std::path::PathBuf::from(".local/share/Steam/compatibilitytools.d")
             }
-            InstallType::ULWGL => {
-                std::path::PathBuf::from(".local/share/ULWGL-Proton")
-            }
+            InstallType::ULWGL => std::path::PathBuf::from(".local/share/ULWGL-Proton"),
         };
         compat_dir.push(compat_path);
         if !compat_dir.exists() {

@@ -8,7 +8,7 @@ use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use protonctllib::{
     decompress,
     github::api::{
-        download_asset, download_asset_to_memory, get_asset_id, release_version, Release, AssetType,
+        download_asset, download_asset_to_memory, get_asset_id, release_version, AssetType, Release,
     },
     utils,
 };
@@ -24,7 +24,12 @@ pub struct Install {
 }
 
 impl Install {
-    pub fn new(install_version: String, flatpak: bool, skip_sha_check: bool, install_type: InstallTypeCmd) -> Self {
+    pub fn new(
+        install_version: String,
+        flatpak: bool,
+        skip_sha_check: bool,
+        install_type: InstallTypeCmd,
+    ) -> Self {
         Self {
             install_version,
             flatpak,
@@ -66,7 +71,7 @@ impl Run for Install {
         let url = self.install_type.get_url(false);
         let release: Release = release_version(&url, &self.install_version).await?;
         let mut install_path = utils::get_download_directory_safe()?;
-        
+
         let tar_asset = get_asset_id(&release, AssetType::Tar);
         install_path.push(&tar_asset.name);
 
@@ -75,7 +80,7 @@ impl Run for Install {
             download_asset(url.clone(), &tar_asset).await?,
         )
         .await?;
-        
+
         // The contents of this if statement should be extracted into a separate function
         if !self.skip_sha_check {
             let sha_asset = get_asset_id(&release, AssetType::Sha);

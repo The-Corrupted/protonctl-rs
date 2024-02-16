@@ -19,8 +19,12 @@ pub mod api {
     impl AssetType {
         pub fn extension(&self) -> Vec<&str> {
             match self {
-                Self::Tar => { vec![".tar.gz", ".tar.xz"] }
-                Self::Sha => { vec![".sha512sum"] }
+                Self::Tar => {
+                    vec![".tar.gz", ".tar.xz"]
+                }
+                Self::Sha => {
+                    vec![".sha512sum"]
+                }
             }
         }
     }
@@ -89,21 +93,25 @@ pub mod api {
         let assets = &release.assets;
         for asset in assets {
             match asset_type {
-                AssetType::Tar => if asset.name.ends_with(extensions[0]) || asset.name.ends_with(extensions[1]) {
-                    found_asset = AssetId {
-                        name: asset.name.clone(),
-                        id: asset.id,
-                        size: asset.size
-                    };
-                    break;
-                },
-                AssetType::Sha => if asset.name.ends_with(extensions[0]) {
-                    found_asset = AssetId {
-                        name: asset.name.clone(),
-                        id: asset.id,
-                        size: asset.size,
-                    };
-                    break;
+                AssetType::Tar => {
+                    if asset.name.ends_with(extensions[0]) || asset.name.ends_with(extensions[1]) {
+                        found_asset = AssetId {
+                            name: asset.name.clone(),
+                            id: asset.id,
+                            size: asset.size,
+                        };
+                        break;
+                    }
+                }
+                AssetType::Sha => {
+                    if asset.name.ends_with(extensions[0]) {
+                        found_asset = AssetId {
+                            name: asset.name.clone(),
+                            id: asset.id,
+                            size: asset.size,
+                        };
+                        break;
+                    }
                 }
             }
         }
@@ -176,7 +184,7 @@ mod tests {
 
     #[tokio::test]
     async fn can_get_asset_ids() -> Result<(), reqwest::Error> {
-        use crate::github::api::{get_asset_id, release_version, Release, AssetType};
+        use crate::github::api::{get_asset_id, release_version, AssetType, Release};
         use crate::install_type::InstallType;
         let install = InstallType::Proton;
 

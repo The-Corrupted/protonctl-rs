@@ -13,7 +13,13 @@ pub struct Remove {
 }
 
 impl Remove {
-    pub fn new(cache: bool, all: bool, flatpak: bool, install_type: InstallTypeCmd, pw_version: String) -> Self {
+    pub fn new(
+        cache: bool,
+        all: bool,
+        flatpak: bool,
+        install_type: InstallTypeCmd,
+        pw_version: String,
+    ) -> Self {
         Self {
             cache,
             all,

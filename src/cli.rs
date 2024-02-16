@@ -58,7 +58,7 @@ pub fn build_cli() -> Command {
                 .action(ArgAction::SetTrue)
                 .required(false)
                 .default_value("false")
-                .help("Use flatpak")
+                .help("Use flatpak"),
         )
         .subcommand(
             Command::new("list")
@@ -128,11 +128,11 @@ pub fn build_cli() -> Command {
                 .arg(Arg::new("install_version").required(true))
                 .arg(
                     Arg::new("skip_sha_check")
-                    .action(ArgAction::SetTrue)
-                    .default_value("false")
-                    .required(false)
-                    .long("skip-sha-check")
-                    .help("Don't attempt to fetch or validate the sha")
-                )
+                        .action(ArgAction::SetTrue)
+                        .default_value("false")
+                        .required(false)
+                        .long("skip-sha-check")
+                        .help("Don't attempt to fetch or validate the sha"),
+                ),
         )
 }

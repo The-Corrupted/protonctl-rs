@@ -19,7 +19,13 @@ pub struct List {
 }
 
 impl List {
-    pub fn new(number: u8, page: u8, local: bool, flatpak: bool, install_type: InstallTypeCmd) -> Self {
+    pub fn new(
+        number: u8,
+        page: u8,
+        local: bool,
+        flatpak: bool,
+        install_type: InstallTypeCmd,
+    ) -> Self {
         Self {
             number,
             page,
@@ -51,7 +57,7 @@ impl Styles {
 #[async_trait]
 impl Run for List {
     async fn run(&self) -> anyhow::Result<()> {
-        let mut term = Term::buffered_stdout(); 
+        let mut term = Term::buffered_stdout();
         if self.local {
             self.list_local(&mut term)?;
         } else {
