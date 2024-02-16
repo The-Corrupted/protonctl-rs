@@ -11,6 +11,20 @@ pub mod api {
         pub size: u64,
     }
 
+    pub enum AssetType {
+        Tar,
+        Sha,
+    }
+
+    impl AssetType {
+        pub fn extension(&self) -> Vec<&str> {
+            match self {
+                Self::Tar => { vec![".tar.gz", ".tar.xz"] }
+                Self::Sha => { vec![".sha512sum"] }
+            }
+        }
+    }
+
     impl AssetId {
         pub fn is_empty(&self) -> bool {
             self.name.is_empty()
@@ -68,37 +82,32 @@ pub mod api {
             .await
     }
 
-    pub fn get_asset_ids(release: &Release) -> (AssetId, AssetId) {
+    pub fn get_asset_id(release: &Release, asset_type: AssetType) -> AssetId {
         // Get the release assets and the release tar file
-        let extensions = [".tar.gz", ".tar.xz"];
-        let sha_postfix = ".sha512sum";
-        let mut tar_asset: AssetId = AssetId::default();
-        let mut sha_asset: AssetId = AssetId::default();
+        let extensions = asset_type.extension();
+        let mut found_asset: AssetId = AssetId::default();
         let assets = &release.assets;
         for asset in assets {
-            if asset.name.ends_with(&extensions[0]) || asset.name.ends_with(&extensions[1]) {
-                let id = AssetId {
-                    name: asset.name.clone(),
-                    id: asset.id,
-                    size: asset.size,
-                };
-                tar_asset = id;
-                continue;
-            }
-            if asset.name.ends_with(sha_postfix) {
-                let id = AssetId {
-                    name: asset.name.clone(),
-                    id: asset.id,
-                    size: asset.size,
-                };
-                sha_asset = id;
-            }
-
-            if !tar_asset.is_empty() && !sha_asset.is_empty() {
-                break;
+            match asset_type {
+                AssetType::Tar => if asset.name.ends_with(extensions[0]) || asset.name.ends_with(extensions[1]) {
+                    found_asset = AssetId {
+                        name: asset.name.clone(),
+                        id: asset.id,
+                        size: asset.size
+                    };
+                    break;
+                },
+                AssetType::Sha => if asset.name.ends_with(extensions[0]) {
+                    found_asset = AssetId {
+                        name: asset.name.clone(),
+                        id: asset.id,
+                        size: asset.size,
+                    };
+                    break;
+                }
             }
         }
-        (tar_asset, sha_asset)
+        found_asset
     }
 
     pub async fn download_asset(
@@ -167,13 +176,14 @@ mod tests {
 
     #[tokio::test]
     async fn can_get_asset_ids() -> Result<(), reqwest::Error> {
-        use crate::github::api::{get_asset_ids, release_version, Release};
+        use crate::github::api::{get_asset_id, release_version, Release, AssetType};
         use crate::install_type::InstallType;
         let install = InstallType::Proton;
 
         let release: Release =
             release_version(&install.get_url(false), &String::from("GE-Proton8-4")).await?;
-        let (tar_asset, sha_asset) = get_asset_ids(&release);
+        let sha_asset = get_asset_id(&release, AssetType::Sha);
+        let tar_asset = get_asset_id(&release, AssetType::Tar);
         assert_eq!(tar_asset.name, String::from("GE-Proton8-4.tar.gz"));
         assert_eq!(sha_asset.name, String::from("GE-Proton8-4.sha512sum"));
         Ok(())
