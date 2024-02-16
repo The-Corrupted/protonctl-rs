@@ -8,7 +8,7 @@ use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use protonctllib::{
     decompress,
     github::api::{
-        download_asset, download_asset_to_memory, get_asset_ids, release_version, Release,
+        download_asset, download_asset_to_memory, get_asset_id, release_version, Release, AssetType,
     },
     utils,
 };
@@ -19,14 +19,16 @@ use std::io::Write;
 pub struct Install {
     pub install_version: String,
     pub flatpak: bool,
+    pub skip_sha_check: bool,
     pub install_type: InstallTypeCmd,
 }
 
 impl Install {
-    pub fn new(install_version: String, flatpak: bool, install_type: InstallTypeCmd) -> Self {
+    pub fn new(install_version: String, flatpak: bool, skip_sha_check: bool, install_type: InstallTypeCmd) -> Self {
         Self {
             install_version,
             flatpak,
+            skip_sha_check,
             install_type,
         }
     }
@@ -63,8 +65,9 @@ impl Run for Install {
             .context("Failed to get compatibility directory")?;
         let url = self.install_type.get_url(false);
         let release: Release = release_version(&url, &self.install_version).await?;
-        let (tar_asset, sha_asset) = get_asset_ids(&release);
         let mut install_path = utils::get_download_directory_safe()?;
+        
+        let tar_asset = get_asset_id(&release, AssetType::Tar);
         install_path.push(&tar_asset.name);
 
         let tar_path = handle_install(
@@ -72,28 +75,33 @@ impl Run for Install {
             download_asset(url.clone(), &tar_asset).await?,
         )
         .await?;
-        let sha_string = download_asset_to_memory(url, &sha_asset).await?;
-        term.write_fmt(format_args!(
-            "{}",
-            styles.prefix_style.apply_to("Checking hash ... ")
-        ))
-        .unwrap();
-        match utils::check_sha(&tar_path, &sha_string) {
-            Ok(is_match) => {
-                if is_match {
-                    term.write_fmt(format_args!(
-                        "{}",
-                        styles.success_style.apply_to("Success\n")
-                    ))
-                    .unwrap();
-                } else {
-                    term.write_fmt(format_args!("{}", styles.fail_style.apply_to("Fail\n")))
+        
+        // The contents of this if statement should be extracted into a separate function
+        if !self.skip_sha_check {
+            let sha_asset = get_asset_id(&release, AssetType::Sha);
+            let sha_string = download_asset_to_memory(url, &sha_asset).await?;
+            term.write_fmt(format_args!(
+                "{}",
+                styles.prefix_style.apply_to("Checking hash ... ")
+            ))
+            .unwrap();
+            match utils::check_sha(&tar_path, &sha_string) {
+                Ok(is_match) => {
+                    if is_match {
+                        term.write_fmt(format_args!(
+                            "{}",
+                            styles.success_style.apply_to("Success\n")
+                        ))
                         .unwrap();
-                    return Err(anyhow::anyhow!("Hash mismatch error!"));
+                    } else {
+                        term.write_fmt(format_args!("{}", styles.fail_style.apply_to("Fail\n")))
+                            .unwrap();
+                        return Err(anyhow::anyhow!("Hash mismatch error!"));
+                    }
                 }
-            }
-            Err(e) => {
-                return Err(e);
+                Err(e) => {
+                    return Err(e);
+                }
             }
         }
 

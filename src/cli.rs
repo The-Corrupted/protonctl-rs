@@ -40,28 +40,28 @@ pub fn build_cli() -> Command {
     Command::new("protonctl")
         .subcommand_precedence_over_arg(true)
         .subcommand_required(true)
+        .arg(
+            Arg::new("type")
+                .short('t')
+                .long("type")
+                .action(ArgAction::Set)
+                .value_parser(clap::builder::EnumValueParser::<InstallTypeCmd>::new())
+                .default_value("proton")
+                .global(true)
+                .required(false)
+                .help("The type install type to use"),
+        )
+        .arg(
+            Arg::new("flatpak")
+                .short('f')
+                .long("flatpak")
+                .action(ArgAction::SetTrue)
+                .required(false)
+                .default_value("false")
+                .help("Use flatpak")
+        )
         .subcommand(
             Command::new("list")
-                .arg(
-                    Arg::new("type")
-                        .short('t')
-                        .long("type")
-                        .action(ArgAction::Set)
-                        .value_parser(clap::builder::EnumValueParser::<InstallTypeCmd>::new())
-                        .default_value("proton")
-                        .global(true)
-                        .required(false)
-                        .help("The type install type to use"),
-                )
-                .arg(
-                    Arg::new("flatpak")
-                        .short('f')
-                        .long("flatpak")
-                        .action(ArgAction::SetTrue)
-                        .required(false)
-                        .default_value("false")
-                        .help("Use flatpak")
-                )
                 .arg(
                     Arg::new("number")
                         .action(ArgAction::Set)
@@ -96,26 +96,6 @@ pub fn build_cli() -> Command {
         .subcommand(
             Command::new("remove")
                 .arg(
-                    Arg::new("type")
-                        .short('t')
-                        .long("type")
-                        .action(ArgAction::Set)
-                        .value_parser(clap::builder::EnumValueParser::<InstallTypeCmd>::new())
-                        .default_value("proton")
-                        .global(true)
-                        .required(false)
-                        .help("The type install type to use"),
-                )
-                .arg(
-                    Arg::new("flatpak")
-                        .short('f')
-                        .long("flatpak")
-                        .action(ArgAction::SetTrue)
-                        .required(false)
-                        .default_value("false")
-                        .help("Use flatpak")
-                )
-                .arg(
                     Arg::new("cache")
                         .action(ArgAction::SetTrue)
                         .default_value("false")
@@ -147,24 +127,12 @@ pub fn build_cli() -> Command {
             Command::new("install")
                 .arg(Arg::new("install_version").required(true))
                 .arg(
-                    Arg::new("type")
-                        .short('t')
-                        .long("type")
-                        .action(ArgAction::Set)
-                        .value_parser(clap::builder::EnumValueParser::<InstallTypeCmd>::new())
-                        .default_value("proton")
-                        .global(true)
-                        .required(false)
-                        .help("The type install type to use"),
+                    Arg::new("skip_sha_check")
+                    .action(ArgAction::SetTrue)
+                    .default_value("false")
+                    .required(false)
+                    .long("skip-sha-check")
+                    .help("Don't attempt to fetch or validate the sha")
                 )
-                .arg(
-                    Arg::new("flatpak")
-                        .short('f')
-                        .long("flatpak")
-                        .action(ArgAction::SetTrue)
-                        .required(false)
-                        .default_value("false")
-                        .help("Use flatpak")
-                ),
         )
 }
