@@ -54,6 +54,15 @@ pub fn build_cli() -> Command {
                         .help("The type install type to use"),
                 )
                 .arg(
+                    Arg::new("flatpak")
+                        .short('f')
+                        .long("flatpak")
+                        .action(ArgAction::SetTrue)
+                        .required(false)
+                        .default_value("false")
+                        .help("Use flatpak")
+                )
+                .arg(
                     Arg::new("number")
                         .action(ArgAction::Set)
                         .value_parser(value_parser!(u8))
@@ -98,6 +107,15 @@ pub fn build_cli() -> Command {
                         .help("The type install type to use"),
                 )
                 .arg(
+                    Arg::new("flatpak")
+                        .short('f')
+                        .long("flatpak")
+                        .action(ArgAction::SetTrue)
+                        .required(false)
+                        .default_value("false")
+                        .help("Use flatpak")
+                )
+                .arg(
                     Arg::new("cache")
                         .action(ArgAction::SetTrue)
                         .default_value("false")
@@ -138,6 +156,15 @@ pub fn build_cli() -> Command {
                         .global(true)
                         .required(false)
                         .help("The type install type to use"),
+                )
+                .arg(
+                    Arg::new("flatpak")
+                        .short('f')
+                        .long("flatpak")
+                        .action(ArgAction::SetTrue)
+                        .required(false)
+                        .default_value("false")
+                        .help("Use flatpak")
                 ),
         )
 }

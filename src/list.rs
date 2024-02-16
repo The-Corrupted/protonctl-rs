@@ -14,15 +14,17 @@ pub struct List {
     pub number: u8,
     pub page: u8,
     pub local: bool,
+    pub flatpak: bool,
     pub install_type: InstallTypeCmd,
 }
 
 impl List {
-    pub fn new(number: u8, page: u8, local: bool, install_type: InstallTypeCmd) -> Self {
+    pub fn new(number: u8, page: u8, local: bool, flatpak: bool, install_type: InstallTypeCmd) -> Self {
         Self {
             number,
             page,
             local,
+            flatpak,
             install_type,
         }
     }
@@ -67,7 +69,7 @@ impl List {
         let versions = get_installed_versions(
             &self
                 .install_type
-                .get_compat_directory_safe()
+                .get_compat_directory_safe(self.flatpak)
                 .context("Failed to get compatibility directory")?,
         )
         .context("Failed to get directory entries")?;

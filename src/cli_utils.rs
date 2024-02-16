@@ -71,14 +71,23 @@ impl InstallTypeCmd {
         }
     }
 
-    pub fn get_compat_directory_safe(&self) -> anyhow::Result<std::path::PathBuf> {
+    pub fn get_compat_directory_safe(&self, is_flatpak: bool) -> anyhow::Result<std::path::PathBuf> {
         let mut compat_dir =
             home_dir().ok_or(anyhow::anyhow!("Failed to get users home directory"))?;
-
         let compat_path = match self {
-            InstallTypeCmd::Wine => std::path::PathBuf::from(".local/share/lutris/runners/wine"),
+            InstallTypeCmd::Wine => {
+                if is_flatpak {
+                    std::path::PathBuf::from(".var/app/net.lutris.Lutris/data/lutris/runners/wine")
+                } else {
+                    std::path::PathBuf::from(".local/share/lutris/runners/wine")
+                }
+            }
             InstallTypeCmd::Proton => {
-                std::path::PathBuf::from(".local/share/Steam/compatibilitytools.d")
+                if is_flatpak {
+                    std::path::PathBuf::from(".var/app/com.valvesoftware.Steam/.local/share/Steam/compatibilitytools.d")
+                } else {
+                    std::path::PathBuf::from(".local/share/Steam/compatibilitytools.d")
+                }
             },
             InstallTypeCmd::ULWGL => {
                 std::path::PathBuf::from(".local/share/ULWGL-Proton/")
@@ -99,17 +108,20 @@ pub fn command_to_struct(cmd: &Command) -> anyhow::Result<Box<dyn Run>> {
     match matches.subcommand() {
         Some(("install", sub_i)) => Ok(Box::new(install::Install::new(
             sub_i.get_one::<String>("install_version").unwrap().clone(),
+            *sub_i.get_one::<bool>("flatpak").unwrap(),
             *sub_i.get_one::<InstallTypeCmd>("type").unwrap(),
         ))),
         Some(("list", sub_l)) => Ok(Box::new(list::List::new(
             *sub_l.get_one::<u8>("number").unwrap(),
             *sub_l.get_one::<u8>("page").unwrap(),
             *sub_l.get_one::<bool>("local").unwrap(),
+            *sub_l.get_one::<bool>("flatpak").unwrap(),
             *sub_l.get_one::<InstallTypeCmd>("type").unwrap(),
         ))),
         Some(("remove", sub_r)) => {
             let cache = *sub_r.get_one::<bool>("cache").unwrap();
             let all = *sub_r.get_one::<bool>("all").unwrap();
+            let flatpak = *sub_r.get_one::<bool>("flatpak").unwrap();
             let install_version = if let Some(v) = sub_r.get_one::<String>("install_version") {
                 v.clone()
             } else {
@@ -122,6 +134,7 @@ pub fn command_to_struct(cmd: &Command) -> anyhow::Result<Box<dyn Run>> {
             Ok(Box::new(remove::Remove::new(
                 cache,
                 all,
+                flatpak,
                 *sub_r.get_one::<InstallTypeCmd>("type").unwrap(),
                 install_version,
             )))

@@ -7,15 +7,17 @@ use protonctllib::{utils, version_info};
 pub struct Remove {
     pub cache: bool,
     pub all: bool,
+    pub flatpak: bool,
     pub install_type: InstallTypeCmd,
     pub pw_version: String,
 }
 
 impl Remove {
-    pub fn new(cache: bool, all: bool, install_type: InstallTypeCmd, pw_version: String) -> Self {
+    pub fn new(cache: bool, all: bool, flatpak: bool, install_type: InstallTypeCmd, pw_version: String) -> Self {
         Self {
             cache,
             all,
+            flatpak,
             install_type,
             pw_version,
         }
@@ -26,13 +28,13 @@ impl Remove {
 impl Run for Remove {
     async fn run(&self) -> anyhow::Result<()> {
         if self.all {
-            let compat_path = self.install_type.get_compat_directory_safe()?;
+            let compat_path = self.install_type.get_compat_directory_safe(self.flatpak)?;
             utils::remove_all_in(&compat_path)?;
         } else if self.cache {
             let install_path = utils::get_download_directory_safe()?;
             utils::remove_all_in(&install_path)?;
         } else {
-            let mut compat_path = self.install_type.get_compat_directory_safe()?;
+            let mut compat_path = self.install_type.get_compat_directory_safe(self.flatpak)?;
             let installed_versions = version_info::get_installed_versions(&compat_path)?;
             compat_path.push(&self.pw_version);
             if let Some(item) = installed_versions
